@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" width="1200" height="675" font-family="system-ui,Segoe UI,Roboto,sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0D7A6F"/>
+      <stop offset="1" stop-color="#0A5A9F"/>
+    </linearGradient>
+    <linearGradient id="phone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#121A2B"/>
+      <stop offset="1" stop-color="#0E1626"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Latar -->
+  <rect width="1200" height="675" fill="url(#bg)"/>
+  <circle cx="1080" cy="80" r="160" fill="#F5B301" opacity="0.15"/>
+  <circle cx="80" cy="620" r="120" fill="#FFF8EC" opacity="0.08"/>
+
+  <!-- Judul kampanye -->
+  <text x="60" y="120" fill="#FFF8EC" font-size="58" font-weight="800">Kasir Tak Kenal</text>
+  <text x="60" y="186" fill="#F5B301" font-size="58" font-weight="800">Mati Sinyal</text>
+  <text x="60" y="240" fill="#DFF3EE" font-size="24">Internet putus? Penjualan tetap jalan. Laporan tetap rapi.</text>
+
+  <!-- Tiga chip keunggulan (dari 6 masalah POS) -->
+  <g font-size="20" font-weight="600">
+    <rect x="60" y="290" width="300" height="56" rx="14" fill="#0B5F57" stroke="#2DD4BF"/>
+    <text x="86" y="325" fill="#EAFBF7">📴 Offline-first: jualan tanpa internet</text>
+    <rect x="60" y="362" width="300" height="56" rx="14" fill="#0B5F57" stroke="#2DD4BF"/>
+    <text x="86" y="397" fill="#EAFBF7">📊 Omzet dari HP — walau di rumah</text>
+    <rect x="60" y="434" width="300" height="56" rx="14" fill="#0B5F57" stroke="#2DD4BF"/>
+    <text x="86" y="469" fill="#EAFBF7">🤝 PENDAMPINGAN LOKAL, bukan call center</text>
+  </g>
+
+  <!-- CTA -->
+  <rect x="60" y="530" width="330" height="70" rx="35" fill="#F5B301"/>
+  <text x="225" y="574" text-anchor="middle" fill="#1E1B16" font-size="26" font-weight="800">Coba Gratis 14 Hari</text>
+  <text x="60" y="646" fill="#BFE6DF" font-size="18">Mulai Rp175.000/bulan · subsidi perangkat kasir · Kab. Kolaka</text>
+
+  <!-- Mockup HP: layar POS -->
+  <g transform="translate(660,70)">
+    <rect x="0" y="0" width="300" height="560" rx="36" fill="#0B1220" stroke="#243252" stroke-width="3"/>
+    <rect x="14" y="14" width="272" height="532" rx="24" fill="url(#phone)"/>
+
+    <!-- status bar -->
+    <text x="30" y="46" fill="#93A3C4" font-size="13">09:41</text>
+    <rect x="196" y="32" width="76" height="22" rx="11" fill="#3B1F0B" stroke="#E4572E"/>
+    <text x="234" y="47" text-anchor="middle" fill="#E4572E" font-size="11" font-weight="700">OFFLINE</text>
+
+    <!-- header toko -->
+    <text x="30" y="86" fill="#E8EEFC" font-size="20" font-weight="800">Toko Barokah</text>
+    <text x="30" y="108" fill="#93A3C4" font-size="12">Shift pagi · 18 Okt</text>
+
+    <!-- menu grid -->
+    <g font-size="12">
+      <rect x="30" y="126" width="120" height="64" rx="10" fill="#18233A" stroke="#243252"/>
+      <text x="44" y="152" fill="#E8EEFC" font-weight="700">Kopi Susu</text>
+      <text x="44" y="174" fill="#2DD4BF">Rp12.000</text>
+      <rect x="162" y="126" width="120" height="64" rx="10" fill="#18233A" stroke="#243252"/>
+      <text x="176" y="152" fill="#E8EEFC" font-weight="700">Nasgor</text>
+      <text x="176" y="174" fill="#2DD4BF">Rp20.000</text>
+      <rect x="30" y="202" width="120" height="64" rx="10" fill="#18233A" stroke="#243252"/>
+      <text x="44" y="228" fill="#E8EEFC" font-weight="700">Mie Goreng</text>
+      <text x="44" y="250" fill="#2DD4BF">Rp15.000</text>
+      <rect x="162" y="202" width="120" height="64" rx="10" fill="#18233A" stroke="#243252"/>
+      <text x="176" y="228" fill="#E8EEFC" font-weight="700">Roti Bakar</text>
+      <text x="176" y="250" fill="#2DD4BF">Rp14.000</text>
+    </g>
+
+    <!-- keranjang -->
+    <rect x="30" y="284" width="252" height="110" rx="10" fill="#101A2E" stroke="#243252"/>
+    <text x="44" y="310" fill="#93A3C4" font-size="12">Transaksi Aktif</text>
+    <text x="44" y="334" fill="#E8EEFC" font-size="13">Kopi Susu ×2</text>
+    <text x="252" y="334" text-anchor="end" fill="#E8EEFC" font-size="13">24.000</text>
+    <text x="44" y="358" fill="#E8EEFC" font-size="13">Mie Goreng ×1</text>
+    <text x="252" y="358" text-anchor="end" fill="#E8EEFC" font-size="13">15.000</text>
+    <text x="44" y="384" fill="#2DD4BF" font-size="15" font-weight="800">TOTAL  Rp39.000</text>
+
+    <!-- antrean sinkron offline -->
+    <rect x="30" y="408" width="252" height="34" rx="9" fill="#1C1408" stroke="#E4572E"/>
+    <text x="156" y="430" text-anchor="middle" fill="#F5B301" font-size="12" font-weight="600">⛓ 3 trx diantre — sinkron saat sinyal kembali</text>
+
+    <!-- tombol bayar -->
+    <rect x="30" y="458" width="120" height="52" rx="12" fill="#0D9488"/>
+    <text x="90" y="490" text-anchor="middle" fill="#FFF8EC" font-size="15" font-weight="800">Tunai</text>
+    <rect x="162" y="458" width="120" height="52" rx="12" fill="#18233A" stroke="#38BDF8"/>
+    <text x="222" y="490" text-anchor="middle" fill="#38BDF8" font-size="15" font-weight="800">QRIS</text>
+
+    <text x="150" y="532" text-anchor="middle" fill="#93A3C4" font-size="11">MVP · offline-first · data tersimpan lokal</text>
+  </g>
+
+  <!-- watermark brand -->
+  <text x="1140" y="646" text-anchor="end" fill="#FFF8EC" font-size="22" font-weight="800" opacity="0.85">POS KOLAKA</text>
+</svg>

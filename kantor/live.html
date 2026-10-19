@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ZR Engine — Konsol Live</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#111820; --panel2:#0e141b; --line:#1f2a36;
+    --text:#dbe6f0; --dim:#7d8fa3; --accent:#3ddc97; --accent2:#5aa9ff;
+    --warn:#ffc857; --bad:#ff6b6b; --radius:10px;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 var(--sans)}
+  header{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(11,15,20,.94);backdrop-filter:blur(8px);z-index:5}
+  header h1{font-size:15px;margin:0;letter-spacing:.04em;text-transform:uppercase}
+  header .dot{width:8px;height:8px;border-radius:50%;background:var(--dim)}
+  header .dot.on{background:var(--accent);box-shadow:0 0 10px var(--accent)}
+  header .spacer{flex:1}
+  header a{color:var(--dim);text-decoration:none;font-size:12px}
+  header a:hover{color:var(--accent2)}
+  .wrap{display:grid;grid-template-columns:300px minmax(0,1fr);gap:18px;padding:18px;max-width:1500px;margin:0 auto}
+  @media(max-width:900px){.wrap{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px}
+  .card h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin:0 0 10px}
+  textarea,input[type=text]{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:10px;font:inherit;resize:vertical}
+  textarea{min-height:86px}
+  textarea:focus,input:focus{outline:1px solid var(--accent2);border-color:var(--accent2)}
+  .row{display:flex;gap:8px;align-items:center;margin-top:10px}
+  .row input[type=text]{flex:1;min-width:0}
+  button{background:var(--accent);color:#04120b;border:0;border-radius:8px;padding:9px 14px;font-weight:650;cursor:pointer}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  button.ghost{background:transparent;border:1px solid var(--line);color:var(--text);font-weight:500}
+  .chk{display:flex;gap:6px;align-items:center;color:var(--dim);font-size:12px;white-space:nowrap}
+  .err{color:var(--bad);font-size:12px;margin-top:8px;display:none}
+  .err code{background:#1a0d0d;padding:1px 5px;border-radius:4px}
+  .runs{display:flex;flex-direction:column;gap:6px;max-height:44vh;overflow:auto}
+  .run{display:block;padding:8px 10px;border-radius:8px;border:1px solid transparent;cursor:pointer;text-decoration:none;color:var(--text)}
+  .run:hover{background:var(--panel2)}
+  .run.sel{border-color:var(--accent2);background:var(--panel2)}
+  .run small{display:block;color:var(--dim);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pill{display:inline-block;font-size:10px;padding:1px 7px;border-radius:99px;border:1px solid var(--line);color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
+  .pill.done{color:var(--accent);border-color:#1d5c42}
+  .pill.needs_attention{color:var(--warn);border-color:#5c4a1d}
+  .pill.error,.pill.cancelled{color:var(--bad);border-color:#5c1d1d}
+  .pill.running{color:var(--accent2);border-color:#1d3a5c}
+  .head{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;justify-content:space-between}
+  .goal{font-size:17px;font-weight:600;margin:4px 0 6px}
+  .meta{color:var(--dim);font-size:12px}
+  .badge{font-size:11px;padding:2px 8px;border-radius:99px;background:#2a2110;color:var(--warn);border:1px solid #5c4a1d}
+  section{margin-top:14px}
+  .agents{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px}
+  .agent{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px;min-height:88px}
+  .agent .top{display:flex;justify-content:space-between;gap:8px;font-size:12px}
+  .agent b{font-weight:600}
+  .agent .role{color:var(--dim);font-size:11px}
+  .agent pre{font:11px/1.45 var(--mono);color:#9fb3c8;max-height:120px;overflow:hidden;margin:8px 0 0;white-space:pre-wrap;word-break:break-word}
+  .agent.ok{border-color:#1d5c42}
+  .agent.bad{border-color:#5c1d1d}
+  .steps{display:flex;flex-wrap:wrap;gap:8px}
+  .step{border:1px solid var(--line);border-radius:99px;padding:3px 10px;font-size:11px;color:var(--dim)}
+  .step b{color:var(--text);font-weight:600}
+  .step.run{border-color:#1d3a5c;color:var(--accent2)}
+  .step.ok{border-color:#1d5c42;color:var(--accent)}
+  .art{border-top:1px solid var(--line);padding:10px 0;display:flex;gap:12px;justify-content:space-between}
+  .art:first-child{border-top:0}
+  .art .body{min-width:0}
+  .art a{color:var(--accent2);text-decoration:none;font-weight:600}
+  .art p{margin:4px 0 0;color:var(--dim);font-size:12px}
+  .score{font:12px var(--mono);color:var(--accent);white-space:nowrap}
+  .qa{margin-top:12px;border-radius:8px;padding:10px 12px;border:1px solid var(--line);font-size:12px}
+  .qa.pass{border-color:#1d5c42;background:#0c1a14}
+  .qa.fail{border-color:#5c1d1d;background:#190d0d}
+  .qa ul{margin:6px 0 0;padding-left:18px}
+  .qa li{margin:2px 0;color:var(--dim)}
+  .empty{color:var(--dim);font-size:13px;padding:6px 0}
+  .live{font:11px var(--mono);color:var(--dim)}
+  footer{padding:10px 20px 30px;color:#4c5b6b;font-size:11px;text-align:center}
+  .fade{animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<header>
+  <span class="dot" id="dot"></span>
+  <h1>ZR Engine</h1>
+  <span class="pill" id="mode">lokal</span>
+  <span class="spacer"></span>
+  <span class="live" id="clock"></span>
+  <a href="/3d/">kantor 3D ↗</a>
+  <a href="/office.html">kantor lama (arsip) ↗</a>
+</header>
+
+<div class="wrap">
+  <aside>
+    <div class="card">
+      <h2>Perintah baru</h2>
+      <textarea id="goal" placeholder="Contoh: naikkan penjualan POS Kolaka 2× dalam 90 hari, anggaran Rp15 juta."></textarea>
+      <div class="row">
+        <input type="text" id="project" placeholder="slug proyek (opsional)">
+        <label class="chk"><input type="checkbox" id="mock"> mock</label>
+      </div>
+      <div class="row">
+        <button id="start">Jalankan</button>
+        <button class="ghost" id="cancel" disabled>Batalkan</button>
+      </div>
+      <div class="err" id="err"></div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h2>Riwayat run</h2>
+      <div class="runs" id="runs"><div class="empty">Belum ada run.</div></div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="card">
+      <div class="head">
+        <div style="min-width:0">
+          <div class="meta" id="runid">Tidak ada run dipilih</div>
+          <div class="goal" id="goaltxt">Ajukan tujuan untuk memulai.</div>
+          <div class="meta" id="modeltxt"></div>
+        </div>
+        <div id="statepill"></div>
+      </div>
+      <section>
+        <div class="steps" id="steps"><span class="step">menunggu rencana…</span></div>
+      </section>
+      <section class="agents" id="agents"></section>
+      <section id="artifacts"></section>
+      <div class="qa" id="qa" style="display:none"></div>
+    </div>
+  </main>
+</div>
+<footer>Realtime lewat Server-Sent Events — tanpa polling. Setiap baris dihasilkan agen yang benar-benar bekerja.</footer>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const state = { id: null, es: null, agents: new Map(), lastArtifacts: [], live: false };
+
+/* jam lokal ringan, bukan polling data */
+setInterval(() => { $("#clock").textContent = new Date().toLocaleTimeString("id-ID", { hour12: false }); }, 1000);
+
+function setError(msg) {
+  const el = $("#err");
+  el.style.display = msg ? "block" : "none";
+  el.innerHTML = msg || "";
+}
+
+async function loadRuns() {
+  try {
+    const r = await fetch("/api/runs").then((x) => x.json());
+    const box = $("#runs");
+    if (!r.runs || !r.runs.length) { box.innerHTML = '<div class="empty">Belum ada run.</div>'; return; }
+    box.innerHTML = r.runs.map((x) => `<a class="run ${x.id === state.id ? "sel" : ""}" data-id="${x.id}">
+        <span class="pill ${esc(x.status)}">${esc(x.status)}</span> <span style="font-size:12px">${esc(x.id.slice(-9))}</span>
+        <small>${esc(x.goal || "")}</small></a>`).join("");
+    box.querySelectorAll(".run").forEach((el) => el.addEventListener("click", () => selectRun(el.dataset.id)));
+  } catch { /* server mati */ }
+}
+
+function agentRow(ev) {
+  let el = document.getElementById("ag-" + ev.taskId);
+  if (!el) {
+    el = document.createElement("div");
+    el.className = "agent fade";
+    el.id = "ag-" + ev.taskId;
+    el.innerHTML = `<div class="top"><b>${esc(ev.taskId)} · ${esc(ev.team)}</b><span class="score" data-s></span></div>
+      <div class="role">${esc(ev.role || "")}</div><pre data-t></pre>`;
+    $("#agents").appendChild(el);
+    state.agents.set(ev.taskId, { text: "" });
+  }
+  return el;
+}
+
+let deltaQueue = [];
+let raf = 0;
+function queueDelta(ev) {
+  deltaQueue.push(ev);
+  if (raf) return;
+  raf = requestAnimationFrame(() => {
+    raf = 0;
+    const byTask = new Map();
+    for (const e of deltaQueue) byTask.set(e.taskId, (byTask.get(e.taskId) || "") + e.text);
+    deltaQueue = [];
+    for (const [taskId, text] of byTask) {
+      const el = document.getElementById("ag-" + taskId);
+      if (!el) continue;
+      const pre = el.querySelector("[data-t]");
+      const cur = (state.agents.get(taskId) || { text: "" }).text + text;
+      state.agents.set(taskId, { text: cur });
+      pre.textContent = cur.slice(-1200);
+      pre.scrollTop = pre.scrollHeight;
+    }
+  });
+}
+
+function renderPlan(tasks) {
+  $("#steps").innerHTML = tasks.map((t) => `<span class="step" id="st-${esc(t.id)}"><b>${esc(t.id)}</b> ${esc(t.team)} · ${esc(t.title)}</span>`).join("");
+}
+
+function markStep(id, cls) {
+  const el = document.getElementById("st-" + id);
+  if (el) { el.className = "step " + cls; }
+}
+
+function addArtifact(ev) {
+  state.lastArtifacts.push(ev);
+  const box = $("#artifacts");
+  const div = document.createElement("div");
+  div.className = "art fade";
+  div.dataset.task = ev.taskId;
+  div.innerHTML = `<div class="body"><a href="${esc(ev.url)}" target="_blank" rel="noopener">${esc(ev.title)}</a>
+      <p>${esc(ev.team)} · ${esc(ev.role)} · ${ev.chars} karakter${ev.qa && ev.qa.pass ? "" : " · ⚠ perlu perhatian"}</p></div>
+      <div class="score">${ev.qa && ev.qa.pass ? "✓" : "⚠"}</div>`;
+  box.appendChild(div);
+  markStep(ev.taskId, ev.qa && ev.qa.pass ? "ok" : "run");
+  const el = document.getElementById("ag-" + ev.taskId);
+  if (el) {
+    el.classList.add(ev.qa && ev.qa.pass ? "ok" : "bad");
+    const pre = el.querySelector("[data-t]");
+    if (pre && !pre.textContent.trim() && ev.excerpt) {
+      pre.textContent = ev.excerpt;
+      state.agents.set(ev.taskId, { text: ev.excerpt });
+    }
+  }
+}
+
+function updateArtifact(ev) {
+  const card = document.getElementById("ag-" + ev.taskId);
+  if (card) {
+    const pre = card.querySelector("[data-t]");
+    if (pre && ev.excerpt) {
+      pre.textContent = ev.excerpt;
+      state.agents.set(ev.taskId, { text: ev.excerpt });
+    }
+    card.classList.toggle("ok", Boolean(ev.qa && ev.qa.pass));
+    card.classList.toggle("bad", Boolean(ev.qa && !ev.qa.pass));
+  }
+  const link = document.querySelector(`#artifacts .art[data-task="${ev.taskId}"] a`);
+  if (link) { link.href = ev.url; link.textContent = ev.title; }
+}
+
+function showQa(qa) {
+  const box = $("#qa");
+  box.style.display = "block";
+  box.className = "qa " + (qa.pass ? "pass" : "fail");
+  const items = [...(qa.blocking || []).map((i) => `❌ ${esc(i.code)}: ${esc(i.message)}`),
+                 ...(qa.warnings || []).map((i) => `⚠️ ${esc(i.code)}: ${esc(i.message)}`)];
+  box.innerHTML = `<b>${qa.pass ? "QA lulus" : "QA perlu perbaikan"}</b>${qa.degraded ? " · degraded (mock)" : ""}` +
+    (items.length ? `<ul>${items.map((i) => `<li>${i}</li>`).join("")}</ul>` : "");
+}
+
+function handle(ev) {
+  switch (ev.type) {
+    case "run.start":
+      $("#goaltxt").textContent = ev.goal;
+      $("#runid").textContent = ev.runId;
+      $("#modeltxt").textContent = `${ev.provider} / ${ev.model}${ev.mocked ? " · MOCK (tidak layak produksi)" : ""}`;
+      $("#statepill").innerHTML = '<span class="pill running">berjalan</span>';
+      $("#cancel").disabled = false;
+      $("#dot").classList.add("on");
+      $("#agents").innerHTML = ""; $("#artifacts").innerHTML = "";
+      break;
+    case "plan.ready":
+      renderPlan(ev.tasks);
+      break;
+    case "task.start":
+      agentRow(ev); markStep(ev.taskId, "run");
+      break;
+    case "agent.delta":
+      queueDelta(ev);
+      break;
+    case "artifact.ready":
+      addArtifact(ev);
+      break;
+    case "artifact.updated":
+      updateArtifact(ev);
+      break;
+    case "review.ready": {
+      const map = new Map(ev.reviews.map((r) => [r.taskId, r.score]));
+      for (const [id, score] of map) {
+        const el = document.getElementById("ag-" + id);
+        if (el) el.querySelector("[data-s]").textContent = score + "/5";
+      }
+      break;
+    }
+    case "review.failed":
+      $("#modeltxt").textContent += " · review gagal: " + (ev.message || "");
+      break;
+    case "run.done":
+      showQa(ev.qa);
+      $("#statepill").innerHTML = `<span class="pill ${ev.qa.pass ? "done" : "needs_attention"}">${ev.qa.pass ? "selesai" : "perlu perbaikan"}</span>`;
+      $("#dot").classList.remove("on");
+      $("#cancel").disabled = true;
+      $("#modeltxt").insertAdjacentHTML("beforeend",
+        ` · ${ev.usage.prompt}+${ev.usage.completion} token · <a style="color:var(--accent2)" href="${esc(ev.report)}" target="_blank">laporan</a>`);
+      break;
+    case "run.error":
+    case "run.cancelled": {
+      const failed = ev.type === "run.error";
+      showQa({ pass: false, blocking: [{ code: ev.type, message: ev.message || "dibatalkan" }], warnings: [] });
+      $("#statepill").innerHTML = `<span class="pill ${failed ? "error" : "cancelled"}">${failed ? "gagal" : "dibatalkan"}</span>`;
+      $("#dot").classList.remove("on");
+      $("#cancel").disabled = true;
+      break;
+    }
+  }
+  loadRunsThrottled();
+}
+
+let refreshTimer = 0;
+function loadRunsThrottled() {
+  clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(loadRuns, 800);
+}
+
+function selectRun(id) {
+  if (state.es) state.es.close();
+  state.id = id;
+  state.agents.clear();
+  $("#agents").innerHTML = ""; $("#artifacts").innerHTML = ""; $("#qa").style.display = "none";
+  $("#steps").innerHTML = '<span class="step">memuat…</span>';
+  $("#runid").textContent = id;
+  $("#cancel").disabled = true;
+  const es = new EventSource(`/api/runs/${id}/stream`);
+  state.es = es;
+  es.onopen = () => { $("#dot").classList.add("on"); };
+  es.onerror = () => { $("#dot").classList.remove("on"); };
+  for (const type of ["run.start","plan.ready","task.start","agent.delta","artifact.ready","artifact.updated","review.ready","review.failed","run.done","run.error","run.cancelled","agent.retry","revise.start","review.revise.start"]) {
+    es.addEventListener(type, (m) => { try { handle(JSON.parse(m.data)); } catch { /* abaikan */ } });
+  }
+  for (const terminal of ["run.done", "run.error", "run.cancelled"]) {
+    es.addEventListener(terminal, () => es.close());
+  }
+  loadRuns();
+}
+
+async function start() {
+  const goal = $("#goal").value.trim();
+  if (goal.length < 8) { setError("Tulis tujuan minimal 8 karakter."); return; }
+  setError("");
+  $("#start").disabled = true;
+  try {
+    const r = await fetch("/api/runs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ goal, project: $("#project").value.trim() || undefined, mock: $("#mock").checked }),
+    });
+    const j = await r.json();
+    if (!r.ok) {
+      setError(j.code === "NO_CREDENTIALS"
+        ? `Belum ada model. Isi <code>.env</code> dengan <code>ZR_API_KEY</code> (lihat <code>.env.example</code>), lalu restart server. Untuk uji alur, centang <b>mock</b>.`
+        : esc(j.error || "Gagal memulai run."));
+      return;
+    }
+    selectRun(j.runId);
+  } catch (e) {
+    setError("Server tidak merespons: " + esc(e.message));
+  } finally {
+    $("#start").disabled = false;
+  }
+}
+
+$("#start").addEventListener("click", start);
+$("#goal").addEventListener("keydown", (e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") start(); });
+$("#cancel").addEventListener("click", async () => {
+  if (!state.id) return;
+  await fetch(`/api/runs/${state.id}/cancel`, { method: "POST" }).catch(() => {});
+});
+
+/* muat awal: daftar run + run terbaru */
+(async function init() {
+  await loadRuns();
+  try {
+    const r = await fetch("/api/runs").then((x) => x.json());
+    if (r.runs && r.runs[0]) selectRun(r.runs[0].id);
+  } catch { /* biarkan kosong */ }
+})();
+</script>
+</body>
+</html>

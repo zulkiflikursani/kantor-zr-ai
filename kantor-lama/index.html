@@ -1,0 +1,2098 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ZR Corp AI — Kantor AI Interaktif</title>
+<style>
+  :root {
+    --bg: #070b16;
+    --panel: rgba(255, 255, 255, 0.04);
+    --stroke: rgba(255, 255, 255, 0.09);
+    --text: #e8edf7;
+    --muted: #93a0b8;
+    --accent: #60a5fa;
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background:
+      radial-gradient(1100px 600px at 15% -10%, rgba(96, 165, 250, 0.14), transparent 60%),
+      radial-gradient(900px 500px at 90% 0%, rgba(251, 191, 36, 0.10), transparent 55%),
+      radial-gradient(900px 700px at 50% 110%, rgba(192, 132, 252, 0.10), transparent 60%),
+      #070b16;
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+  header {
+    position: sticky; top: 0; z-index: 40;
+    backdrop-filter: blur(14px);
+    background: rgba(7, 11, 22, 0.86);
+    border-bottom: 1px solid var(--stroke);
+  }
+  .header-inner {
+    max-width: 1320px; margin: 0 auto; padding: 12px 20px;
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; margin-right: auto; }
+  .brand .logo {
+    width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-size: 21px;
+    background: linear-gradient(135deg, rgba(96,165,250,.25), rgba(251,191,36,.25));
+    border: 1px solid var(--stroke);
+  }
+  .brand h1 { font-size: 17px; font-weight: 800; letter-spacing: .3px; }
+  .brand p { font-size: 11.5px; color: var(--muted); }
+  nav.tabs { display: flex; gap: 5px; background: var(--panel); padding: 5px; border-radius: 14px; border: 1px solid var(--stroke); flex-wrap: wrap; }
+  nav.tabs button {
+    font: inherit; font-size: 12.5px; font-weight: 650; color: var(--muted);
+    background: transparent; border: 0; padding: 8px 12px; border-radius: 10px; cursor: pointer; transition: .18s;
+  }
+  nav.tabs button:hover { color: var(--text); }
+  nav.tabs button.active { background: rgba(96, 165, 250, 0.18); color: #dbeafe; box-shadow: inset 0 0 0 1px rgba(96,165,250,.35); }
+  .search {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--panel); border: 1px solid var(--stroke); border-radius: 14px; padding: 8px 12px;
+  }
+  .search input { font: inherit; font-size: 13px; background: transparent; border: 0; outline: 0; color: var(--text); width: 180px; }
+  .search input::placeholder { color: #64748b; }
+  .search span { font-size: 13px; opacity: .6; }
+
+  .stats { max-width: 1320px; margin: 16px auto 0; padding: 0 20px; display: flex; flex-wrap: wrap; gap: 10px; }
+  .stat { flex: 1 1 120px; background: var(--panel); border: 1px solid var(--stroke); border-radius: 14px; padding: 11px 15px; }
+  .stat b { display: block; font-size: 21px; letter-spacing: .3px; }
+  .stat span { font-size: 11.5px; color: var(--muted); }
+
+  main { max-width: 1320px; margin: 0 auto; padding: 20px 20px 80px; }
+  .view { display: none; animation: fade .25s ease; }
+  .view.active { display: block; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .section-head { margin: 4px 0 14px; }
+  .section-head h2 { font-size: 19px; }
+  .section-head p { color: var(--muted); font-size: 13px; margin-top: 3px; }
+  .hint {
+    display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--muted);
+    background: var(--panel); border: 1px dashed var(--stroke); padding: 8px 13px; border-radius: 12px; margin-bottom: 14px;
+  }
+
+  /* ---------- Denah 2D ---------- */
+  .floor {
+    background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.02));
+    border: 1px solid var(--stroke); border-radius: 22px; padding: 18px; margin-bottom: 22px;
+  }
+  .floor-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .floor-badge { font-size: 11px; font-weight: 800; letter-spacing: 1.5px; padding: 6px 11px; border-radius: 999px; border: 1px solid var(--stroke); background: rgba(255,255,255,.06); white-space: nowrap; }
+  .floor-head h3 { font-size: 15.5px; }
+  .floor-head .floor-sub { color: var(--muted); font-size: 12.5px; }
+  .floor-grid { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 10px; align-items: stretch; }
+  .conn { display: grid; place-items: center; color: #5b6b8a; font-size: 16px; user-select: none; animation: pulse 2.6s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity:.45; } 50% { opacity: 1; } }
+  .room {
+    font: inherit; color: inherit; text-align: left; cursor: pointer;
+    background: rgba(10, 15, 30, 0.65); border: 1px solid var(--stroke); border-radius: var(--radius);
+    padding: 16px; position: relative; min-height: 160px; display: flex; flex-direction: column; gap: 8px;
+    transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+  }
+  .room::before { content: ""; position: absolute; top: 0; left: 16px; right: 16px; height: 3px; background: var(--c, var(--accent)); border-radius: 0 0 6px 6px; opacity: .85; }
+  .room:hover, .room:focus-visible { transform: translateY(-5px); border-color: color-mix(in srgb, var(--c, var(--accent)) 65%, transparent); box-shadow: 0 14px 34px -18px var(--c, var(--accent)); outline: none; }
+  .room .r-top { display: flex; align-items: center; justify-content: space-between; }
+  .room .r-icon { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; font-size: 19px; background: color-mix(in srgb, var(--c, var(--accent)) 20%, transparent); border: 1px solid color-mix(in srgb, var(--c, var(--accent)) 40%, transparent); }
+  .room .r-count { font-size: 11px; font-weight: 700; color: var(--muted); background: rgba(255,255,255,.06); border: 1px solid var(--stroke); padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
+  .room h4 { font-size: 15px; }
+  .room .r-area { font-size: 11px; letter-spacing: .6px; text-transform: uppercase; color: var(--c, var(--accent)); font-weight: 700; }
+  .room .r-desc { font-size: 12.2px; color: var(--muted); flex: 1; }
+  .room .r-cta { font-size: 12px; font-weight: 700; color: var(--c, var(--accent)); }
+  .room.empty { cursor: default; border-style: dashed; opacity: .75; }
+  .room.empty:hover { transform: none; box-shadow: none; border-color: var(--stroke); }
+
+  /* ---------- Isometrik 3D ---------- */
+  .iso-layout { display: flex; gap: 16px; align-items: flex-start; }
+  .iso-main { flex: 1; min-width: 0; }
+  .iso-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .iso-chip { font: inherit; font-size: 12px; font-weight: 650; color: var(--muted); background: var(--panel); border: 1px solid var(--stroke); padding: 7px 13px; border-radius: 999px; cursor: pointer; transition: .15s; }
+  .iso-chip:hover { color: var(--text); }
+  .iso-chip.active { background: rgba(96,165,250,.18); color: #dbeafe; border-color: rgba(96,165,250,.4); }
+  .iso-stage { background: radial-gradient(600px 380px at 50% 0%, rgba(96,165,250,.10), transparent 65%), linear-gradient(180deg, #0a1020, #070b16); border: 1px solid var(--stroke); border-radius: 22px; overflow: hidden; }
+  #isoScene { display: block; width: 100%; height: min(78vh, 880px); }
+  #isoScene text { font-family: inherit; }
+  #isoScene .lbl { paint-order: stroke; stroke: #05080f; stroke-width: 3px; stroke-linejoin: round; }
+  .room-g { cursor: pointer; }
+  .room-g .rf-top { transition: filter .2s; }
+  .room-g:hover .rf-top { filter: brightness(1.3) saturate(1.15); }
+  .win { animation: winFlick 4.5s ease-in-out infinite; }
+  @keyframes winFlick { 0%,100%{opacity:.28} 45%{opacity:.85} 72%{opacity:.5} }
+  .flowline { stroke-dasharray: 7 9; animation: dashMove 2.6s linear infinite; }
+  @keyframes dashMove { to { stroke-dashoffset: -32; } }
+  .bubble { opacity: 0; transition: opacity .35s ease; }
+  .bubble.on { opacity: 1; }
+  .floor-g { transition: opacity .35s ease; }
+  .dim { opacity: .13; }
+  .banner-txt { animation: glowPulse 3.4s ease-in-out infinite; }
+  @keyframes glowPulse { 0%,100%{opacity:.8} 50%{opacity:1} }
+  .lift-cap { filter: drop-shadow(0 0 8px rgba(251,191,36,.65)); }
+
+  /* ---------- Ticker aktivitas ---------- */
+  .ticker { width: 300px; flex: none; background: var(--panel); border: 1px solid var(--stroke); border-radius: 18px; padding: 15px; }
+  .ticker-head { font-size: 13px; font-weight: 800; letter-spacing: .4px; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .live { font-size: 9px; font-weight: 800; letter-spacing: 1px; color: #34d399; background: rgba(52,211,153,.14); border: 1px solid rgba(52,211,153,.4); padding: 3px 7px; border-radius: 999px; animation: glowPulse 1.6s infinite; }
+  #tickList { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  #tickList li { display: flex; gap: 9px; font-size: 12px; color: #cbd5e1; border-bottom: 1px dashed rgba(255,255,255,.07); padding-bottom: 9px; animation: tickIn .4s ease; }
+  @keyframes tickIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  #tickList .t-time { color: #64748b; font-size: 10px; font-variant-numeric: tabular-nums; }
+  #tickList .t-role { color: var(--muted); font-size: 10.5px; display: block; }
+  .ticker-note { margin-top: 12px; font-size: 11px; color: var(--muted); background: rgba(255,255,255,.04); border: 1px dashed var(--stroke); border-radius: 12px; padding: 9px 11px; }
+
+  /* ---------- Drawer ---------- */
+  .overlay { position: fixed; inset: 0; background: rgba(3, 6, 14, 0.62); opacity: 0; visibility: hidden; transition: .22s; z-index: 60; backdrop-filter: blur(3px); }
+  .overlay.open { opacity: 1; visibility: visible; }
+  .drawer {
+    position: fixed; top: 0; right: 0; height: 100%; width: min(460px, 100%);
+    background: #0b1122; border-left: 1px solid var(--stroke);
+    transform: translateX(102%); transition: transform .28s cubic-bezier(.32,.72,.34,1);
+    z-index: 70; display: flex; flex-direction: column; box-shadow: -30px 0 60px -30px rgba(0,0,0,.8);
+  }
+  .drawer.open { transform: none; }
+  .drawer-head { padding: 20px 22px 16px; border-bottom: 1px solid var(--stroke); position: relative; }
+  .drawer-head .bar { position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--c, var(--accent)); }
+  .drawer-head .d-floor { font-size: 11px; font-weight: 800; letter-spacing: 1.4px; color: var(--c, var(--accent)); }
+  .drawer-head h3 { font-size: 20px; margin-top: 4px; }
+  .drawer-head .d-area { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  .drawer-close { position: absolute; top: 16px; right: 16px; width: 34px; height: 34px; border-radius: 10px; background: rgba(255,255,255,.07); border: 1px solid var(--stroke); color: var(--text); font-size: 16px; cursor: pointer; transition: .15s; }
+  .drawer-close:hover { background: rgba(255,255,255,.14); }
+  .drawer-body { padding: 18px 22px 30px; overflow-y: auto; }
+  .room-desc { font-size: 13.5px; color: #c3cde0; background: var(--panel); border: 1px solid var(--stroke); border-radius: 14px; padding: 13px 15px; margin-bottom: 18px; }
+  .role-card { background: rgba(255,255,255,.035); border: 1px solid var(--stroke); border-radius: 16px; padding: 14px 15px; margin-bottom: 12px; transition: border-color .18s; }
+  .role-card:hover { border-color: color-mix(in srgb, var(--c, var(--accent)) 45%, transparent); }
+  .role-card.lead { background: color-mix(in srgb, var(--c, var(--accent)) 9%, transparent); }
+  .role-title { display: flex; align-items: flex-start; gap: 8px; justify-content: space-between; }
+  .role-title h5 { font-size: 14px; font-weight: 700; }
+  .badge { font-size: 9.5px; font-weight: 800; letter-spacing: .7px; text-transform: uppercase; padding: 4px 8px; border-radius: 999px; white-space: nowrap; background: color-mix(in srgb, var(--c, var(--accent)) 26%, transparent); color: #fff; border: 1px solid color-mix(in srgb, var(--c, var(--accent)) 55%, transparent); }
+  .badge.you { background: rgba(251,191,36,.22); color: #fde68a; border-color: rgba(251,191,36,.6); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chip { font-size: 11.3px; padding: 4.5px 10px; border-radius: 999px; background: rgba(255,255,255,.06); border: 1px solid var(--stroke); color: #cbd5e1; transition: .15s; }
+  .chip.hit { background: rgba(251,191,36,.2); border-color: rgba(251,191,36,.65); color: #fde68a; }
+  .sub-label { font-size: 11px; font-weight: 800; letter-spacing: 1.3px; text-transform: uppercase; color: var(--muted); margin: 18px 0 10px; }
+
+  /* ---------- Org chart ---------- */
+  .org { display: flex; flex-direction: column; align-items: center; padding-top: 6px; }
+  .org-box { background: rgba(10,15,30,.8); border: 1px solid var(--stroke); border-radius: 16px; padding: 13px 18px; text-align: center; min-width: 200px; }
+  .org-box.ceo { border-color: rgba(251,191,36,.65); background: linear-gradient(180deg, rgba(251,191,36,.16), rgba(251,191,36,.05)); box-shadow: 0 18px 40px -24px rgba(251,191,36,.7); }
+  .org-box .o-role { font-size: 14px; font-weight: 700; }
+  .org-box .o-name { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .org-box .o-tag { display: inline-block; margin-top: 7px; font-size: 10px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; background: rgba(251,191,36,.2); color: #fde68a; border: 1px solid rgba(251,191,36,.5); }
+  .org-support { display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap; justify-content: center; }
+  .org-support .mini { min-width: 190px; }
+  .vline { width: 2px; height: 24px; background: linear-gradient(rgba(255,255,255,.28), rgba(255,255,255,.1)); }
+  .hline { height: 2px; background: rgba(255,255,255,.16); }
+  .leads { display: flex; gap: 12px; width: 100%; align-items: flex-start; justify-content: center; flex-wrap: wrap; }
+  .lead-col { flex: 1 1 128px; max-width: 210px; display: flex; flex-direction: column; align-items: center; }
+  .lead-col::before { content: ""; width: 2px; height: 20px; background: rgba(255,255,255,.16); }
+  .lead-col .org-box { min-width: 0; width: 100%; padding: 11px 9px; }
+  .lead-col .org-box .o-role { font-size: 12.5px; }
+  .members { width: 100%; margin-top: 12px; border-left: 2px solid rgba(255,255,255,.13); padding-left: 11px; display: flex; flex-direction: column; gap: 9px; }
+  .member { position: relative; font-size: 11.8px; color: #cbd5e1; background: rgba(255,255,255,.045); border: 1px solid var(--stroke); border-radius: 11px; padding: 8px 10px; transition: .15s; }
+  .member::before { content: ""; position: absolute; left: -11px; top: 50%; width: 9px; height: 2px; background: rgba(255,255,255,.16); }
+  .member:hover { border-color: color-mix(in srgb, var(--c, var(--accent)) 55%, transparent); color: #fff; }
+  .member small { display: block; color: var(--muted); font-size: 10.5px; margin-top: 2px; }
+  .block-label { font-size: 9.5px; font-weight: 800; letter-spacing: .9px; text-transform: uppercase; color: var(--c, var(--accent)); margin-bottom: 6px; text-align: center; }
+
+  /* ---------- Matrix ---------- */
+  .matrix-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+  .matrix-tools .search { flex: 1 1 300px; }
+  .matrix-tools .search input { width: 100%; }
+  .result-count { font-size: 12.5px; color: var(--muted); }
+  .matrix-wrap { background: rgba(255,255,255,.03); border: 1px solid var(--stroke); border-radius: 18px; overflow-x: auto; }
+  table.matrix { width: 100%; border-collapse: collapse; min-width: 760px; }
+  table.matrix th { font-size: 10.5px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); text-align: left; padding: 13px 16px; background: rgba(255,255,255,.05); border-bottom: 1px solid var(--stroke); position: sticky; top: 0; }
+  table.matrix td { padding: 13px 16px; border-bottom: 1px solid rgba(255,255,255,.055); vertical-align: top; font-size: 13px; }
+  table.matrix tr:last-child td { border-bottom: 0; }
+  tr.group td { background: color-mix(in srgb, var(--c, var(--accent)) 10%, rgba(255,255,255,.02)); font-size: 11.5px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: var(--c, var(--accent)); padding: 10px 16px; }
+  .cell-block { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12.5px; white-space: nowrap; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c, var(--accent)); flex: none; }
+  .cell-role { font-weight: 650; }
+  .cell-role small { display: block; font-weight: 500; color: var(--muted); font-size: 11px; }
+  .empty-row td { text-align: center; color: var(--muted); padding: 34px; }
+  tr.row:hover td { background: rgba(255,255,255,.035); }
+
+  /* ---------- Folder & Progres ---------- */
+  .ov-strip { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .ov-strip .stat { flex: 1 1 110px; }
+  .master { flex: 1 1 250px; background: var(--panel); border: 1px solid var(--stroke); border-radius: 14px; padding: 11px 15px; }
+  .master .m-top { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .master .m-top b { color: var(--text); }
+  .folder-layout { display: flex; gap: 16px; align-items: flex-start; }
+  .tree { width: 285px; flex: none; background: var(--panel); border: 1px solid var(--stroke); border-radius: 18px; padding: 12px; max-height: 78vh; overflow-y: auto; }
+  .tree-root { font-size: 12px; font-weight: 800; color: var(--muted); padding: 4px 8px 10px; letter-spacing: .4px; }
+  .t-team, .t-proj { display: flex; align-items: center; gap: 8px; width: 100%; font: inherit; text-align: left; color: var(--text); background: transparent; border: 1px solid transparent; border-radius: 11px; padding: 8px 9px; cursor: pointer; transition: .14s; font-size: 12.5px; }
+  .t-team:hover, .t-proj:hover { background: rgba(255,255,255,.05); }
+  .t-team.active { background: rgba(96,165,250,.14); border-color: rgba(96,165,250,.35); }
+  .t-proj { margin-left: 15px; font-size: 11.7px; color: #cbd5e1; }
+  .t-proj.active { background: rgba(251,191,36,.13); border-color: rgba(251,191,36,.4); }
+  .t-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .t-bar { width: 44px; height: 5px; border-radius: 99px; background: rgba(255,255,255,.09); overflow: hidden; flex: none; }
+  .t-bar i { display: block; height: 100%; border-radius: 99px; transition: width .45s ease; }
+  .t-pct { font-size: 10px; color: var(--muted); width: 30px; text-align: right; font-variant-numeric: tabular-nums; }
+  .pane { flex: 1; min-width: 0; background: var(--panel); border: 1px solid var(--stroke); border-radius: 18px; padding: 18px; }
+  .crumbs { font-size: 11px; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; margin-bottom: 12px; word-break: break-all; }
+  .crumbs b { color: #cbd5e1; }
+  .pane h3 { font-size: 18px; margin-bottom: 2px; }
+  .p-desc { font-size: 13px; color: var(--muted); margin: 6px 0 14px; }
+  .meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px; }
+  .meta-card { background: rgba(255,255,255,.04); border: 1px solid var(--stroke); border-radius: 12px; padding: 10px 12px; }
+  .meta-card b { display: block; font-size: 13px; margin-top: 2px; }
+  .meta-card span { font-size: 10px; letter-spacing: .8px; text-transform: uppercase; color: var(--muted); }
+  .progress-mod { background: rgba(255,255,255,.04); border: 1px solid var(--stroke); border-radius: 16px; padding: 14px 16px; margin-bottom: 16px; }
+  .progress-mod .pm-top { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; color: var(--muted); margin-bottom: 9px; gap: 10px; flex-wrap: wrap; }
+  .pbar { height: 12px; border-radius: 99px; background: rgba(255,255,255,.08); overflow: hidden; }
+  .pbar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--c, #60a5fa), color-mix(in srgb, var(--c, #60a5fa) 55%, #fff)); transition: width .5s cubic-bezier(.3,.8,.4,1); }
+  .status-chip { font-size: 10px; font-weight: 800; letter-spacing: .6px; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; border: 1px solid; white-space: nowrap; }
+  .st-plan { color: #94a3b8; border-color: #94a3b866; background: #94a3b81a; }
+  .st-run { color: #7dd3fc; border-color: #7dd3fc66; background: #7dd3fc1a; }
+  .st-review { color: #fbbf24; border-color: #fbbf2466; background: #fbbf241a; }
+  .st-done { color: #34d399; border-color: #34d39966; background: #34d3991a; }
+  .check-list { display: flex; flex-direction: column; gap: 8px; }
+  .check-item { display: flex; align-items: center; gap: 11px; background: rgba(255,255,255,.04); border: 1px solid var(--stroke); border-radius: 12px; padding: 11px 13px; cursor: pointer; transition: .15s; font: inherit; color: var(--text); text-align: left; width: 100%; }
+  .check-item:hover { border-color: rgba(96,165,250,.4); }
+  .check-item .cbox { width: 19px; height: 19px; border-radius: 6px; border: 2px solid #64748b; flex: none; display: grid; place-items: center; font-size: 11px; color: transparent; transition: .15s; }
+  .check-item.done .cbox { background: var(--c, #60a5fa); border-color: var(--c, #60a5fa); color: #0b1122; font-weight: 900; }
+  .check-item.done .ctext { color: var(--muted); text-decoration: line-through; }
+  .check-item .ctext { font-size: 13px; }
+  .team-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+  .pcard { background: rgba(255,255,255,.04); border: 1px solid var(--stroke); border-radius: 14px; padding: 13px; cursor: pointer; transition: .15s; text-align: left; font: inherit; color: var(--text); }
+  .pcard:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--c) 50%, transparent); }
+  .pcard h4 { font-size: 13.5px; margin-bottom: 9px; }
+  .pcard .pc-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 8px; gap: 8px; }
+  .pane-sec-title { font-size: 11px; font-weight: 800; letter-spacing: 1.1px; text-transform: uppercase; color: var(--muted); margin: 18px 0 10px; }
+  .member-line { display: flex; flex-wrap: wrap; gap: 6px; }
+  .member-line span { font-size: 11px; background: rgba(255,255,255,.06); border: 1px solid var(--stroke); border-radius: 999px; padding: 4px 10px; color: #cbd5e1; }
+
+  /* ---------- Kantor Agen ---------- */
+  .agent-banner { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; background: rgba(251,191,36,.1); border: 1px solid rgba(251,191,36,.4); color: #fde68a; border-radius: 14px; padding: 12px 15px; font-size: 12.8px; margin-bottom: 16px; }
+  .agent-banner code { background: rgba(0,0,0,.35); padding: 2px 7px; border-radius: 7px; }
+  .agent-banner button { margin-left: auto; }
+  .agent-layout { display: flex; gap: 16px; align-items: flex-start; }
+  .agent-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+  .agent-side { width: 340px; flex: none; }
+  .agent-card { background: var(--panel); border: 1px solid var(--stroke); border-radius: 18px; padding: 15px; }
+  .ac-head { font-size: 13.5px; font-weight: 800; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .ac-sub { font-size: 11px; color: var(--muted); font-weight: 500; }
+  .directive-row { display: flex; gap: 10px; }
+  .directive-row textarea, .directive-row input, .chat-target-row select { flex: 1; font: inherit; font-size: 13px; color: var(--text); background: rgba(255,255,255,.05); border: 1px solid var(--stroke); border-radius: 12px; padding: 10px 12px; outline: 0; resize: vertical; }
+  .directive-row textarea:focus, .directive-row input:focus { border-color: rgba(96,165,250,.5); }
+  .btn-primary { font: inherit; font-size: 13px; font-weight: 700; color: #0b1122; background: linear-gradient(135deg,#7dd3fc,#60a5fa); border: 0; border-radius: 12px; padding: 10px 18px; cursor: pointer; transition: .15s; white-space: nowrap; }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .btn-primary:disabled { opacity: .55; cursor: default; }
+  .btn-toggle { font: inherit; font-size: 12.5px; font-weight: 700; width: 100%; color: #dbeafe; background: rgba(96,165,250,.14); border: 1px solid rgba(96,165,250,.4); border-radius: 12px; padding: 10px; cursor: pointer; margin-bottom: 12px; transition: .15s; }
+  .btn-toggle.on { color: #052e16; background: linear-gradient(135deg,#6ee7b7,#34d399); border-color: transparent; }
+  .plan-team { background: rgba(255,255,255,.04); border: 1px solid var(--stroke); border-left: 3px solid var(--c); border-radius: 12px; padding: 11px 13px; margin-top: 10px; }
+  .plan-team b { font-size: 12.8px; color: var(--c); }
+  .plan-team ol { margin: 6px 0 0 18px; font-size: 12.3px; color: #cbd5e1; }
+  .plan-note { font-size: 11.5px; color: var(--muted); margin-top: 10px; }
+  .chat-log { max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 9px; margin-bottom: 12px; padding-right: 4px; }
+  .chat-log:empty { display: none; }
+  .bub { max-width: 82%; font-size: 12.8px; padding: 9px 12px; border-radius: 14px; line-height: 1.45; }
+  .bub.me { align-self: flex-end; background: rgba(96,165,250,.2); border: 1px solid rgba(96,165,250,.4); border-bottom-right-radius: 4px; }
+  .bub.ai { align-self: flex-start; background: rgba(255,255,255,.06); border: 1px solid var(--stroke); border-bottom-left-radius: 4px; }
+  .bub.think { align-self: flex-start; color: var(--muted); font-style: italic; }
+  .bub .who { display: block; font-size: 10px; font-weight: 800; letter-spacing: .5px; color: var(--muted); margin-bottom: 3px; }
+  .agent-grid { display: flex; flex-direction: column; gap: 8px; max-height: 540px; overflow-y: auto; }
+  .ag-item { display: flex; gap: 9px; align-items: center; background: rgba(255,255,255,.04); border: 1px solid var(--stroke); border-radius: 12px; padding: 9px 11px; }
+  .ag-dot { width: 9px; height: 9px; border-radius: 50%; background: #475569; flex: none; }
+  .ag-item.working .ag-dot { background: #34d399; box-shadow: 0 0 8px rgba(52,211,153,.8); animation: glowPulse 1.4s infinite; }
+  .ag-body { flex: 1; min-width: 0; }
+  .ag-name { font-size: 12px; font-weight: 700; }
+  .ag-task { font-size: 10.8px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ag-pct { font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .chat-me { font: inherit; font-size: 10px; font-weight: 800; color: #7dd3fc; background: rgba(125,211,252,.12); border: 1px solid rgba(125,211,252,.4); border-radius: 999px; padding: 4px 9px; cursor: pointer; white-space: nowrap; }
+  .chat-me:hover { background: rgba(125,211,252,.25); }
+
+  /* ---------- Layar pantau (read-only mode Freebuff) ---------- */
+  .ro-note { display: flex; gap: 9px; align-items: flex-start; font-size: 12.3px; color: #cbd5e1; background: rgba(96,165,250,.08); border: 1px dashed rgba(96,165,250,.35); border-radius: 12px; padding: 10px 12px; margin-top: 10px; }
+  .ro-note b { color: #7dd3fc; }
+  .flash { animation: flashCard 1.5s ease; }
+  @keyframes flashCard { 0%, 100% { box-shadow: none; } 30% { box-shadow: 0 0 0 3px rgba(96,165,250,.4); } }
+  .dir-status { font-size: 9.5px; font-weight: 800; letter-spacing: .6px; padding: 3px 9px; border-radius: 999px; border: 1px solid; text-transform: uppercase; }
+  .dir-status.waiting { color: #fbbf24; border-color: rgba(251,191,36,.5); background: rgba(251,191,36,.12); }
+  .dir-status.working { color: #60a5fa; border-color: rgba(96,165,250,.5); background: rgba(96,165,250,.12); }
+  .dir-status.done { color: #34d399; border-color: rgba(52,211,153,.5); background: rgba(52,211,153,.12); }
+  .dir-text { font-size: 13.5px; line-height: 1.55; margin: 4px 0 5px; }
+  .dir-meta { font-size: 11px; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; }
+  .dir-deliv { font-size: 11.5px; color: #cbd5e1; background: rgba(255,255,255,.04); border: 1px solid var(--stroke); border-radius: 10px; padding: 8px 11px; margin-top: 8px; display: flex; flex-direction: column; gap: 4px; word-break: break-all; }
+  .dir-deliv a { color: #7dd3fc; text-decoration: none; }
+  .dir-deliv a:hover { text-decoration: underline; }
+  .prod-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+  .prod-item { display: flex; gap: 9px; align-items: center; font-size: 12.3px; background: rgba(255,255,255,.04); border: 1px solid var(--stroke); border-radius: 10px; padding: 8px 11px; color: #cbd5e1; text-decoration: none; }
+  .prod-item:hover { border-color: rgba(96,165,250,.5); color: #fff; }
+  .prod-item .sz { margin-left: auto; font-size: 10px; color: var(--muted); white-space: nowrap; }
+
+  /* ---------- Suasana kantor (live) ---------- */
+  .office-now { background: var(--panel); border: 1px solid var(--stroke); border-radius: 18px; padding: 15px; margin-bottom: 14px; }
+  .on-clock { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .on-clock .jam { font-size: 30px; font-weight: 800; letter-spacing: 1px; font-variant-numeric: tabular-nums; }
+  .on-clock .hari { font-size: 11.5px; color: var(--muted); }
+  .on-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+  .on-cell { background: rgba(255,255,255,.045); border: 1px solid var(--stroke); border-radius: 12px; padding: 9px 11px; font-size: 11.5px; color: #cbd5e1; }
+  .on-cell b { display: block; font-size: 9.5px; letter-spacing: .8px; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+  .now-feed { margin-top: 12px; display: flex; flex-direction: column; gap: 7px; max-height: 132px; overflow: hidden; }
+  .now-feed li { list-style: none; font-size: 11.4px; color: #cbd5e1; display: flex; gap: 8px; animation: tickIn .5s ease; }
+  .now-feed .t-time { color: #64748b; font-size: 10px; font-variant-numeric: tabular-nums; flex: none; }
+
+  /* ---------- Meja kerja (desk grid, realistis) ---------- */
+  .desk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .desk { background: rgba(10,15,30,.6); border: 1px solid var(--stroke); border-radius: 14px; padding: 11px 12px; position: relative; overflow: hidden; }
+  .desk::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--c, var(--accent)); opacity: .55; }
+  .desk .d-top { display: flex; align-items: center; gap: 9px; }
+  .d-avatar { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-size: 16px; background: color-mix(in srgb, var(--c) 20%, transparent); border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); flex: none; }
+  .d-name { font-size: 12.3px; font-weight: 750; line-height: 1.2; }
+  .d-seats { font-size: 9.5px; color: var(--muted); }
+  .led { margin-left: auto; width: 8px; height: 8px; border-radius: 50%; background: #475569; flex: none; }
+  .desk.working .led { background: #34d399; box-shadow: 0 0 9px rgba(52,211,153,.9); animation: glowPulse 1.4s infinite; }
+  .d-screen { display: flex; gap: 7px; align-items: center; font-size: 11.3px; color: #94a3b8; background: rgba(0,0,0,.35); border: 1px solid var(--stroke); border-radius: 9px; padding: 7px 9px; margin-top: 9px; min-height: 36px; }
+  .desk.working .d-screen { color: #e8edf7; }
+  .d-screen .mon { flex: none; }
+  .d-screen .txt { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .desk.working .txt::after { content: ""; animation: dots 1.4s steps(4, end) infinite; }
+  @keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+  .d-bar { height: 5px; background: rgba(255,255,255,.08); border-radius: 99px; margin-top: 8px; overflow: hidden; }
+  .d-bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--c, var(--accent)), color-mix(in srgb, var(--c, var(--accent)) 55%, #fff)); transition: width .6s ease; }
+  .d-meta { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 5px; font-variant-numeric: tabular-nums; }
+  .d-skills { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 7px; }
+  .d-skill { font-size: 9px; font-weight: 650; padding: 2px 8px; background: rgba(255,255,255,.06); border: 1px solid var(--stroke); border-radius: 999px; color: #cbd5e1; white-space: nowrap; }
+  .plan-skills { font-size: 11.3px; color: #cbd5e1; margin-top: 6px; padding-left: 4px; border-left: 2px solid var(--c, var(--accent)); }
+
+  /* ---------- Aktivitas otak Freebuff (live) ---------- */
+  .brain-bar { display: flex; gap: 10px; align-items: center; font-size: 12.8px; background: rgba(96,165,250,.10); border: 1px solid rgba(96,165,250,.4); color: #dbeafe; border-radius: 14px; padding: 11px 14px; margin-bottom: 14px; }
+  .brain-bar.done { background: rgba(52,211,153,.10); border-color: rgba(52,211,153,.4); color: #bbf7d0; }
+  .brain-bar .bb-sub { display: block; font-size: 10.5px; opacity: .75; }
+  .bb-dot { width: 10px; height: 10px; border-radius: 50%; background: #60a5fa; box-shadow: 0 0 10px rgba(96,165,250,.9); animation: glowPulse 1.1s infinite; flex: none; }
+  .brain-bar.done .bb-dot { background: #34d399; box-shadow: 0 0 10px rgba(52,211,153,.9); animation: none; }
+  @media (max-width: 760px) { .desk-grid { grid-template-columns: 1fr; } }
+
+  /* ---------- Suasana waktu (pagi/malam) ---------- */
+  body[data-tod="malam"] .win { fill: #fbbf24; }
+  body[data-tod="malam"] .iso-stage { background: radial-gradient(600px 380px at 50% 0%, rgba(251,191,36,.08), transparent 65%), linear-gradient(180deg, #080d1a, #05080f); }
+
+  /* ---------- Kamera 3D: toolbar, zoom, putar, masuk ruangan ---------- */
+  .iso-stage { position: relative; }
+  .iso-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  .iso-btn { font: inherit; font-size: 13px; font-weight: 700; color: #cbd5e1; background: rgba(255,255,255,.06); border: 1px solid var(--stroke); border-radius: 10px; padding: 8px 13px; cursor: pointer; transition: .15s; user-select: none; }
+  .iso-btn:hover { color: #fff; border-color: rgba(96,165,250,.55); background: rgba(96,165,250,.12); }
+  .iso-hint { font-size: 11px; color: var(--muted); margin-left: 4px; }
+  #cam { transition: transform .5s cubic-bezier(.25,.8,.3,1); }
+  #cam.dragging { transition: none; }
+  .typist { animation: typeBob .85s ease-in-out infinite alternate; }
+  @keyframes typeBob { from { transform: translateY(0); } to { transform: translateY(.9px); } }
+  .focus-panel { position: absolute; left: 14px; right: 14px; bottom: 14px; background: rgba(8,13,26,.92); border: 1px solid var(--stroke); border-radius: 16px; padding: 13px 15px; z-index: 5; display: none; backdrop-filter: blur(6px); }
+  .focus-panel.open { display: block; animation: tickIn .35s ease; }
+  .fp-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .fp-icon { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-size: 17px; background: color-mix(in srgb, var(--fc, var(--accent)) 22%, transparent); border: 1px solid color-mix(in srgb, var(--fc, var(--accent)) 45%, transparent); flex: none; }
+  .fp-title { font-size: 14.5px; font-weight: 800; }
+  .fp-sub { font-size: 10.5px; letter-spacing: .7px; text-transform: uppercase; color: var(--muted); }
+  .fp-task { font-size: 12.2px; color: #cbd5e1; margin-top: 7px; }
+  .fp-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .tb-btns { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .tb-btn { font: inherit; font-size: 12px; font-weight: 650; color: #cbd5e1; background: rgba(255,255,255,.06); border: 1px solid var(--stroke); border-radius: 10px; padding: 8px 12px; cursor: pointer; transition: .15s; }
+  .tb-btn:hover { border-color: rgba(163,230,53,.5); color: #ecfccb; }
+  .tb-btn:disabled { opacity: .5; cursor: default; }
+  .tb-in { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+  .tb-in input { font: inherit; font-size: 12px; width: 92px; color: var(--text); background: rgba(255,255,255,.05); border: 1px solid var(--stroke); border-radius: 9px; padding: 6px 9px; outline: 0; }
+  .tb-out { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10.8px; line-height: 1.5; color: #cbd5e1; background: rgba(0,0,0,.35); border: 1px solid var(--stroke); border-radius: 12px; padding: 11px 13px; max-height: 300px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+  @media (max-width: 1000px) { .agent-layout { flex-direction: column; } .agent-side { width: 100%; } }
+
+  footer { max-width: 1320px; margin: 0 auto; padding: 0 20px 40px; color: var(--muted); font-size: 12.5px; text-align: center; }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  @media (max-width: 1000px) {
+    .iso-layout, .folder-layout { flex-direction: column; }
+    .ticker, .tree { width: 100%; }
+    #isoScene { height: 60vh; }
+    .hline, .vline { display: none; }
+    .lead-col { max-width: none; flex-basis: 220px; }
+  }
+  @media (max-width: 560px) {
+    .header-inner { padding: 12px 14px; }
+    .brand p { display: none; }
+    .search { order: 3; width: 100%; }
+    .search input { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <div class="logo">🏢</div>
+      <div>
+        <h1>ZR Corp AI</h1>
+        <p>Kantor AI Interaktif · Struktur, Folder Tim &amp; Progres</p>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button class="active" data-view="agent" role="tab">🤖 Kantor Agen</button>
+      <button data-view="iso" role="tab">🏢 Isometrik 3D</button>
+      <button data-view="denah" role="tab">🗺️ Denah 2D</button>
+      <button data-view="folder" role="tab">📁 Folder &amp; Progres</button>
+      <button data-view="struktur" role="tab">🏛️ Struktur</button>
+      <button data-view="matrix" role="tab">📊 Matrix</button>
+    </nav>
+    <label class="search">
+      <span>🔎</span>
+      <input id="globalSearch" type="search" placeholder="Cari posisi atau keahlian…" autocomplete="off" />
+    </label>
+  </div>
+</header>
+
+<div class="stats" id="stats"></div>
+
+<main>
+  <!-- ============ VIEW: KANTOR AGEN ============ -->
+  <section class="view active" id="view-agent">
+    <div class="section-head">
+      <h2>🤖 Kantor Agen — Layar Pantau Live</h2>
+      <p>Semua instruksi &amp; chat diberikan langsung dari <b>chat Freebuff</b> (otak kantor). Halaman ini hanya menampilkan rencana direktur, meja kerja tim, dan riwayat percakapan secara real-time.</p>
+    </div>
+    <div class="agent-banner" id="agentBanner" hidden>
+      <span id="agentBannerText"></span>
+      <button class="btn-primary" id="demoBtn">Pakai Mode Demo</button>
+    </div>
+    <div class="agent-layout">
+      <div class="agent-main">
+        <div class="brain-bar" id="brainBar" hidden></div>
+        <div class="agent-card" id="dirCard">
+          <div class="ac-head">📡 Instruksi Direktur <span class="ac-sub">dari chat Freebuff — rencana &amp; status eksekusi</span></div>
+          <div id="planOut"></div>
+          <div id="uiInputs" hidden>
+            <div class="ac-sub" style="margin:6px 0 8px">Mode non-Freebuff — perintah lokal:</div>
+            <div class="directive-row">
+              <textarea id="directiveInput" rows="2" placeholder='mis. “siapkan kampanye peluncuran produk AI untuk kuartal 4” atau “bantu mahasiswa UT siapkan bimbingan skripsi”'></textarea>
+              <button id="directiveBtn" class="btn-primary">Perintahkan</button>
+            </div>
+          </div>
+          <div class="ro-note" id="roNote">🧠 <b>Otak: Freebuff.</b> Tulis perintah (atau chat peran mana pun) di thread Freebuff — direktur langsung memecahnya jadi tugas tim, mengerjakan deliverablenya, dan hasilnya tampil di sini. Input web dinonaktifkan agar instruksi tidak lagi lambat atau terputus.</div>
+        </div>
+        <div class="agent-card">
+          <div class="ac-head">🖥️ Lantai Kerja <span class="ac-sub">meja tiap blok — status, tugas &amp; progres live</span></div>
+          <div id="agentGrid" class="desk-grid"></div>
+        </div>
+        <div class="agent-card" id="chatCard">
+          <div class="ac-head">💬 Ruang Chat Peran <span class="ac-sub">riwayat percakapan — balasan otak Freebuff</span></div>
+          <div class="chat-target-row" style="margin-bottom:10px"><select id="chatRole"></select></div>
+          <div class="chat-log" id="chatLog"></div>
+          <div id="chatInputs" hidden>
+            <div class="directive-row" style="margin-top:8px">
+              <input id="chatInput" type="text" placeholder="Tulis pesan untuk agen…" />
+              <button id="chatBtn" class="btn-primary">Kirim</button>
+            </div>
+          </div>
+          <div class="ro-note">📨 Kirim pesan baru dari chat Freebuff (sebut peran yang ingin diajak bicara) — balasannya muncul langsung di sini.</div>
+        </div>
+      </div>
+      <aside class="agent-side">
+        <div class="agent-card" id="tbCard" hidden>
+          <div class="ac-head">🎓 TutorBot UT <span class="ac-sub">agen e-learning asli — perintah read-only</span></div>
+          <div class="tb-btns">
+            <button class="tb-btn" data-cmd="peta" data-args="--panjang">🗺️ Peta Course</button>
+            <button class="tb-btn" data-cmd="uji">🧪 Selftest Offline</button>
+            <button class="tb-btn" data-cmd="cek">🔐 Cek Login</button>
+            <label class="tb-in">cmid <input id="tbCmid" type="text" placeholder="mis. 373840" autocomplete="off" /></label>
+            <button class="tb-btn" data-cmd="tugas">📋 Roster Tugas</button>
+            <button class="tb-btn" data-cmd="forum">💬 Daftar Forum</button>
+          </div>
+          <pre id="tbOut" class="tb-out">Belum ada perintah dijalankan.</pre>
+          <div class="plan-note">🔒 Hanya perintah baca yang bisa dijalankan dari sini. Aksi tulis (nilai <code>--apply</code>, balasan forum) tetap lewat konfirmasi tutor di thread Freebuff.</div>
+        </div>
+        <div class="office-now">
+          <div class="ac-head">🕐 Suasana Kantor <span class="ac-sub" id="shiftLabel"></span></div>
+          <div class="on-clock"><span class="jam" id="clk">--:--:--</span><span class="hari" id="clkDate"></span></div>
+          <div class="on-grid">
+            <div class="on-cell"><b>Kehadiran</b><span id="occNow">…</span></div>
+            <div class="on-cell"><b>Kondisi Gedung</b><span id="condNow">…</span></div>
+          </div>
+          <ul class="now-feed" id="ambFeed"></ul>
+        </div>
+        <div class="agent-card">
+          <div class="ac-head">⚙️ Pusat Kendali <span class="ac-sub" id="engineLabel"></span></div>
+          <button id="autoWorkBtn" class="btn-toggle">▶ Nyalakan Auto-Work</button>
+          <div class="plan-note" style="margin-top:9px">Status tiap blok ada di kartu <b>🖥️ Lantai Kerja</b>. Progres diperbarui otak Freebuff saat memproses perintah/chat.</div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ============ VIEW: ISOMETRIK 3D ============ -->
+  <section class="view" id="view-iso">
+    <div class="section-head">
+      <h2>🏢 Kantor 3D — Satu Lantai (Live, Interaktif)</h2>
+      <p>Seluruh 10 blok &amp; lobi berada di <b>satu lantai</b> dengan struktur asli (tiap baris = bekas lantai gedung). Klik ruangan untuk <b>masuk</b>, scroll/tombol untuk <b>zoom</b>, tombol untuk <b>putar</b>. Aktivitas karakter = tugas asli dari perintah Freebuff — bukan simulasi.</p>
+    </div>
+    <div class="iso-layout">
+      <div class="iso-main">
+        <div class="iso-bar">
+          <button class="iso-btn" id="camZoomIn" title="Zoom in">➕ Zoom In</button>
+          <button class="iso-btn" id="camZoomOut" title="Zoom out">➖ Zoom Out</button>
+          <button class="iso-btn" id="camRotL" title="Putar kiri">⟲ Putar Kiri</button>
+          <button class="iso-btn" id="camRotR" title="Putar kanan">⟳ Putar Kanan</button>
+          <button class="iso-btn" id="camReset" title="Kembali ke tampilan awal">⌂ Reset</button>
+          <span class="iso-hint">🖱️ scroll = zoom · tarik = geser · klik ruangan = masuk · Esc = kembali</span>
+        </div>
+        <div class="iso-stage"><svg id="isoScene" viewBox="-430 -120 830 520" preserveAspectRatio="xMidYMid meet"></svg>
+          <div class="focus-panel" id="focusPanel"></div>
+        </div>
+      </div>
+      <aside class="ticker">
+        <div class="ticker-head">📡 Aktivitas Terkini <span class="live">LIVE</span></div>
+        <ul id="tickList"></ul>
+        <div class="ticker-note">Setiap karakter = satu anggota tim. Bubble &amp; ticker menampilkan <b>tugas asli</b> hasil perintah Freebuff (dari <code>kantor/state.json</code>) — bukan simulasi.</div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ============ VIEW: DENAH 2D ============ -->
+  <section class="view" id="view-denah">
+    <div class="section-head">
+      <h2>🗺️ Peta Blok Ruangan</h2>
+      <p id="denahSub"></p>
+    </div>
+    <div class="hint">💡 Klik salah satu ruangan untuk membuka detail tim &amp; keahlian — proyek tiap tim ada di tab Folder &amp; Progres</div>
+    <div id="floors"></div>
+  </section>
+
+  <!-- ============ VIEW: FOLDER & PROGRES ============ -->
+  <section class="view" id="view-folder">
+    <div class="section-head">
+      <h2>📁 Folder Tim &amp; Modul Progres</h2>
+      <p>Struktur folder nyata di workspace: <code>teams/&lt;tim&gt;/projects/&lt;proyek&gt;/</code>. Klik folder di pohon kiri untuk melihat modul progres — checklist task bisa di-toggle dan progres langsung ikut berubah.</p>
+    </div>
+    <div class="ov-strip" id="ovStrip"></div>
+    <div class="folder-layout">
+      <aside class="tree" id="tree"></aside>
+      <div class="pane" id="pane"></div>
+    </div>
+  </section>
+
+  <!-- ============ VIEW: STRUKTUR ============ -->
+  <section class="view" id="view-struktur">
+    <div class="section-head">
+      <h2>🏛️ Struktur Organisasi</h2>
+      <p>Hierarki dari CEO hingga seluruh ketua blok dan anggota tim di setiap lantai.</p>
+    </div>
+    <div id="org"></div>
+  </section>
+
+  <!-- ============ VIEW: MATRIX ============ -->
+  <section class="view" id="view-matrix">
+    <div class="section-head">
+      <h2>📊 Matrix Skills</h2>
+      <p>Matriks posisi × keahlian seluruh profesional kantor. Gunakan pencarian untuk menyaring.</p>
+    </div>
+    <div class="matrix-tools">
+      <label class="search">
+        <span>🔎</span>
+        <input id="matrixSearch" type="search" placeholder="Filter: mis. “LLM”, “Tuton”, “Audit”…" autocomplete="off" />
+      </label>
+      <span class="result-count" id="resultCount"></span>
+    </div>
+    <div class="matrix-wrap">
+      <table class="matrix">
+        <thead><tr><th style="width:170px">Blok</th><th style="width:270px">Posisi</th><th>Keahlian (Skills)</th></tr></thead>
+        <tbody id="matrixBody"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<footer>
+  ZR Corp AI · Sumber data: <a href="struktur_organisasi_dan_tata_letak_kantor_ai.md" target="_blank" rel="noopener">struktur_organisasi_dan_tata_letak_kantor_ai.md</a>
+  · Folder tim &amp; proyek di <code>teams/</code> (regenerasi: <code>node tools/gen-folders.cjs</code>)
+</footer>
+
+<div class="overlay" id="overlay"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+  <div class="drawer-head" id="drawerHead">
+    <div class="bar"></div>
+    <button class="drawer-close" id="drawerClose" aria-label="Tutup detail">✕</button>
+    <div class="d-floor" id="drawerFloor"></div>
+    <h3 id="drawerTitle"></h3>
+    <div class="d-area" id="drawerArea"></div>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+</aside>
+
+<script type="application/json" id="zr-data">{
+  "teams": {
+    "resepsionis": {
+      "name": "Blok Resepsionis"
+    },
+    "keuangan": {
+      "name": "Blok Keuangan"
+    },
+    "it": {
+      "name": "Blok IT-Developer"
+    },
+    "riset": {
+      "name": "Blok Riset & Penelitian"
+    },
+    "designer": {
+      "name": "Blok Designer"
+    },
+    "marketing": {
+      "name": "Blok Marketing"
+    },
+    "manager": {
+      "name": "Blok Manager"
+    },
+    "direktur": {
+      "name": "Blok Direktur"
+    },
+    "ut": {
+      "name": "Blok Dosen UT"
+    },
+    "pnup": {
+      "name": "Blok Tim PNUP"
+    }
+  },
+  "projects": [
+    {
+      "team": "riset",
+      "slug": "pos-kolaka-riset-pasar",
+      "name": "POS Kolaka — Riset Pasar & Masalah POS",
+      "desc": "Program pertama alur baru: riset pasar Kabupaten Kolaka, masalah POS yang ada dijadikan keunggulan, dan daftar prospect terverifikasi. Dirjen: DIR-1.",
+      "lead": "Chief Scientist / Head of Research (Profesor Utama)",
+      "deadline": "2026-11-30",
+      "tasks": [
+        [
+          "Riset pasar Kabupaten Kolaka (segmen kafe/UMKM/kedai kopi)",
+          1
+        ],
+        [
+          "Riset masalah POS yang ada & pemetaan kompetitor",
+          1
+        ],
+        [
+          "Peta keunggulan dari tiap masalah (posisi menang)",
+          1
+        ],
+        [
+          "Survei & wawancara pelanggan lapangan",
+          0
+        ],
+        [
+          "Daftar prospect terverifikasi (serah ke Marketing)",
+          0
+        ]
+      ]
+    },
+    {
+      "team": "marketing",
+      "slug": "pos-kolaka-customer-iklan",
+      "name": "POS Kolaka — Cari Customer & Model Iklan",
+      "desc": "Strategi mencari pelanggan outlet POS di Kolaka + model iklan (funnel, channel mix, kreatif, KPI). Bagian program DIR-1.",
+      "lead": "Head of Growth & Marketing",
+      "deadline": "2026-12-15",
+      "tasks": [
+        [
+          "ICP & segmentasi target customer (kafe Kolaka)",
+          1
+        ],
+        [
+          "Kanal cari customer: kunjungan, komunitas, digital, referral",
+          1
+        ],
+        [
+          "Model iklan: funnel, channel mix, ide kreatif",
+          1
+        ],
+        [
+          "Anggaran iklan final & KPI",
+          true
+        ],
+        [
+          "Eksekusi kampanye & follow-up prospect",
+          0
+        ]
+      ]
+    },
+    {
+      "team": "it",
+      "slug": "pos-kolaka-produk",
+      "name": "POS Kolaka — Produk Digital POS",
+      "desc": "Spesifikasi & pembangunan produk POS yang menjawab masalah hasil riset (offline-first, laporan sederhana, QRIS). Bagian program DIR-1.",
+      "lead": "Lead Software Architect",
+      "deadline": "2026-12-20",
+      "tasks": [
+        [
+          "Spesifikasi produk dari hasil riset masalah POS",
+          1
+        ],
+        [
+          "MVP backlog (offline-first, QRIS, laporan harian)",
+          1
+        ],
+        [
+          "Arsitektur & rencana build",
+          true
+        ],
+        [
+          "Build MVP POS",
+          true
+        ],
+        [
+          "Uji coba & pilot di kafe Kolaka",
+          0
+        ]
+      ]
+    },
+    {
+      "team": "keuangan",
+      "slug": "pos-kolaka-harga-anggaran",
+      "name": "POS Kolaka — Model Harga & Anggaran",
+      "desc": "HPP layanan, strategi harga paket lokal, anggaran iklan & cashflow, unit economics program POS Kolaka. Bagian program DIR-1.",
+      "lead": "Chief Financial Officer (CFO)",
+      "deadline": "2026-12-10",
+      "tasks": [
+        [
+          "Analisis biaya operasional & HPP layanan",
+          1
+        ],
+        [
+          "Strategi harga paket (local pricing)",
+          1
+        ],
+        [
+          "Anggaran iklan & cashflow 3 bulan",
+          true
+        ],
+        [
+          "Unit economics & target break-even",
+          true
+        ]
+      ]
+    },
+    {
+      "team": "designer",
+      "slug": "pos-kolaka-desain",
+      "name": "POS Kolaka — Desain Iklan & UI Produk",
+      "desc": "Konsep visual kampanye, materi iklan (feed/story/poster), dan mockup UI produk POS. Bagian program DIR-1.",
+      "lead": "Creative Director",
+      "deadline": "2026-12-05",
+      "tasks": [
+        [
+          "Konsep visual kampanye POS Kolaka",
+          1
+        ],
+        [
+          "Desain materi iklan (feed/story/poster)",
+          true
+        ],
+        [
+          "Mockup UI produk POS",
+          true
+        ],
+        [
+          "Aset final & panduan brand",
+          true
+        ]
+      ]
+    },
+    {
+      "team": "manager",
+      "slug": "pos-kolaka-koordinasi",
+      "name": "POS Kolaka — Koordinasi & Timeline",
+      "desc": "Peta alur kerja antar tim (riset → produk → customer → iklan), timeline sprint 4 minggu, ritme standup. Bagian program DIR-1.",
+      "lead": "General / Operational Manager",
+      "deadline": "2026-12-20",
+      "tasks": [
+        [
+          "Peta alur kerja antar tim (riset → produk → marketing)",
+          1
+        ],
+        [
+          "Timeline sprint 4 minggu",
+          1
+        ],
+        [
+          "Standup & pelacakan progres mingguan",
+          true
+        ]
+      ]
+    },
+    {
+      "team": "direktur",
+      "slug": "pos-kolaka-strategi",
+      "name": "POS Kolaka — Strategi & Keputusan Direksi",
+      "desc": "Brief program, arahan positioning 'masalah POS jadi keunggulan', review berkala & go/no-go eksekusi. Bagian program DIR-1.",
+      "lead": "Direktur Utama / Chief Executive Officer (CEO)",
+      "deadline": "2026-12-20",
+      "tasks": [
+        [
+          "Brief proyek & arahan keunggulan",
+          1
+        ],
+        [
+          "Review riset pasar & keputusan positioning",
+          1
+        ],
+        [
+          "Review berkala & go/no-go eksekusi",
+          true
+        ]
+      ]
+    },
+    {
+      "team": "resepsionis",
+      "slug": "pos-kolaka-penjangkauan",
+      "name": "POS Kolaka — Penjangkauan & Database Kontak",
+      "desc": "Struktur database prospect, template jadwal kunjungan outlet, pelaksanaan kunjungan bersama Marketing. Bagian program DIR-1.",
+      "lead": "Head of Front Office & Guest Experience",
+      "deadline": "2026-12-20",
+      "tasks": [
+        [
+          "Struktur database kontak prospect",
+          1
+        ],
+        [
+          "Template jadwal kunjungan outlet",
+          1
+        ],
+        [
+          "Jalankan kunjungan bersama Marketing",
+          0
+        ]
+      ]
+    },
+    {
+      "team": "ut",
+      "slug": "pos-kolaka-pelatihan",
+      "name": "POS Kolaka — Materi Pelatihan POS untuk UMKM",
+      "desc": "Bidang UT (instructional design): kurikulum singkat 'POS untuk Pemilik Kafe', modul operasional, asesmen mini. Bagian program DIR-1.",
+      "lead": "Koordinator Tim Dosen UT",
+      "deadline": "2026-12-18",
+      "tasks": [
+        [
+          "Outline kurikulum singkat 'POS untuk Pemilik Kafe'",
+          1
+        ],
+        [
+          "Modul 1: setup & operasional harian",
+          true
+        ],
+        [
+          "Bank soal & sertifikasi mini",
+          true
+        ]
+      ]
+    },
+    {
+      "team": "pnup",
+      "slug": "pos-kolaka-pendampingan",
+      "name": "POS Kolaka — Pendampingan Vokasi & Uji Coba",
+      "desc": "Bidang PNUP (vokasi & pengabdian): rencana pendampingan UMKM/magang asisten, lokasi uji coba, laporan pendampingan. Bagian program DIR-1.",
+      "lead": "Koordinator Tim PNUP",
+      "deadline": "2026-12-22",
+      "tasks": [
+        [
+          "Rencana pendampingan UMKM & magang asisten",
+          1
+        ],
+        [
+          "Lokasi uji coba & mitra",
+          true
+        ],
+        [
+          "Laporan pendampingan",
+          0
+        ]
+      ]
+    }
+  ]
+}</script>
+<script>
+const ZR_DATA = JSON.parse(document.getElementById("zr-data").textContent);
+/* =====================================================================
+   DATA BLOK & TIM — ZR Corp AI
+   ===================================================================== */
+const BLOCKS = {
+  resepsionis: {
+    name: "Blok Resepsionis", icon: "📍", color: "#38bdf8", area: "Front Office Block",
+    desc: "Area Lobby penerimaan tamu bergaya modern-minimalis dengan integrasi layar pintar interaktif dan sistem reservasi AI.",
+    roles: [
+      { title: "Head of Front Office & Guest Experience", lead: true, skills: ["Hospitality Leadership", "Crisis Management", "Business Protocol", "Event Management"] },
+      { title: "Senior Front Desk Specialist", skills: ["Interpersonal Communication", "Guest Relations", "Reservation & Schedule Management", "Multitasking"] },
+      { title: "AI Concierge & Guest Relations Operator", skills: ["AI-Human Interaction Management", "Digital Kiosk Operations", "Visitor Analytics & Data Entry"] },
+      { title: "Administrative Support Staff", skills: ["Document Management", "Google Workspace / MS Office", "Business Correspondence"] },
+    ],
+  },
+  lobby: {
+    name: "Main Lobby", icon: "🏢", color: "#94a3b8", area: "Central Atrium",
+    desc: "Ruang lobby utama yang menghubungkan Blok Resepsionis dan Blok Keuangan — pusat sirkulasi, lift, dan akses ke seluruh lantai.",
+    roles: [],
+  },
+  keuangan: {
+    name: "Blok Keuangan", icon: "💰", color: "#34d399", area: "Finance & Operations Suite",
+    desc: "Finance & Operations Suite — Ruang kerja dengan sistem keamanan tinggi, enkripsi data digital, dan ruang arsip keuangan.",
+    roles: [
+      { title: "Chief Financial Officer (CFO)", lead: true, skills: ["Financial Strategy & Planning", "Capital Allocation", "Risk Management", "Fundraising & Investor Relations"] },
+      { title: "Senior Financial Controller", skills: ["Financial Statement Analysis", "Budgeting & Forecasting", "Internal Auditing", "Cash Flow Management"] },
+      { title: "Corporate Tax & Audit Specialist", skills: ["Corporate Tax Compliance (PPH, PPN)", "Tax Planning", "Regulatory Auditing"] },
+      { title: "Payroll & Accounts Specialist", skills: ["Payroll Automation Systems", "Accounts Payable/Receivable (AP/AR)", "Invoicing"] },
+      { title: "Financial AI & Data Analyst", skills: ["Predictive Financial Modeling", "ROI Analysis for AI/Tech Assets", "Automated Financial Reporting"] },
+    ],
+  },
+  it: {
+    name: "Blok IT-Developer", icon: "💻", color: "#818cf8", area: "Tech & Engineering Block",
+    desc: "Developer Hub / Tech Lab — Ruang kerja terbuka (open-plan) yang dilengkapi high-performance servers, multi-monitor setup, dan agile discussion room.",
+    roles: [
+      { title: "Lead Software Architect", lead: true, skills: ["System Architecture", "Distributed Systems Scalability", "Tech Stack Evaluation", "Tech Leadership"] },
+      { title: "Senior AI / Machine Learning Engineer", skills: ["Deep Learning (PyTorch/TensorFlow)", "LLM Fine-Tuning & RAG", "MLOps", "Algorithm Optimization"] },
+      { title: "Senior Full-Stack Developer", skills: ["Python", "TypeScript/Go", "React/Next.js", "FastAPI/Node.js", "RESTful & GraphQL APIs"] },
+      { title: "DevOps & Cloud Infrastructure Specialist", skills: ["AWS/GCP/Azure", "Kubernetes & Docker", "CI/CD Pipelines", "Infrastructure as Code (Terraform)", "Cloud Security"] },
+      { title: "QA & Security Tester", skills: ["Automated Testing (Playwright/Selenium)", "Penetration Testing", "Stress & Load Testing", "Vulnerability Assessment"] },
+    ],
+  },
+  riset: {
+    name: "Blok Riset & Penelitian", icon: "🔬", color: "#c084fc", area: "Research & Development Block",
+    desc: "AI Research & Innovation Lab — Area riset bebas gangguan suara (sound-dampened) yang disimulasikan untuk penelitian tingkat tinggi dan papan tulis interaktif.",
+    roles: [
+      { title: "Chief Scientist / Head of Research (Profesor Utama)", lead: true, skills: ["Advanced Research Methodology", "Scientific Publication", "Strategic AI Vision", "Academic Leadership"] },
+      { title: "Senior AI Research Fellow (Doktor / Adjunct Professor)", skills: ["Natural Language Processing (NLP)", "Computer Vision", "Reinforcement Learning", "Mathematical Modeling"] },
+      { title: "Data Research Associate", skills: ["Data Extraction & Preprocessing", "Model Benchmarking", "Dataset Curation & Cleaning"] },
+      { title: "Ethical AI & Academic Liaison Specialist", skills: ["AI Governance & Ethics", "Data Privacy Compliance (GDPR/PDP)", "Academic Partnerships"] },
+    ],
+  },
+  designer: {
+    name: "Blok Designer", icon: "🎨", color: "#f472b6", area: "Creative & Design Block",
+    desc: "Creative Studio — Ruangan ergonomis dengan pencahayaan yang disesuaikan, color-calibrated monitors, dan area galeri visual produk.",
+    roles: [
+      { title: "Creative Director", lead: true, skills: ["Brand Identity & Art Direction", "Visual Strategy", "Product Storytelling", "Design Team Mentorship"] },
+      { title: "Lead UI/UX Designer", skills: ["User Research", "Wireframing & Prototyping (Figma)", "Usability Testing", "Design Systems Management"] },
+      { title: "3D & Motion Graphic Designer", skills: ["3D Modeling (Blender/Cinema4D)", "Motion Graphics (After Effects)", "Visual Effects (VFX)"] },
+      { title: "Product & Brand Identity Designer", skills: ["Design Thinking", "User Journey Mapping", "Visual Graphic Design", "Asset Standardization"] },
+    ],
+  },
+  marketing: {
+    name: "Blok Marketing", icon: "📈", color: "#fb923c", area: "Growth & Marketing Block",
+    desc: "Marketing War Room — Ruang strategi yang dilengkapi analytics dashboard waktu-nyata (real-time) dan studio presentasi kampanye.",
+    roles: [
+      { title: "Head of Growth & Marketing", lead: true, skills: ["Go-To-Market (GTM) Strategy", "B2B/B2C Tech Marketing", "Performance Marketing Leadership", "CAC/LTV Optimization"] },
+      { title: "Digital Marketing Strategist", skills: ["SEO/SEM", "Paid Acquisition (PPC)", "Growth Hacking", "Marketing Automation (HubSpot/Marketo)"] },
+      { title: "AI Product Marketing Manager", skills: ["Competitive Intelligence", "AI Product Positioning", "Feature Launch Strategy", "User Education"] },
+      { title: "Content & Brand Communications Specialist", skills: ["Tech Copywriting", "Brand Communications", "Public Relations (PR)", "Content Strategy"] },
+      { title: "Performance & Data Specialist", skills: ["Funnel Analytics", "A/B Testing", "Google Analytics 4", "Marketing Attribution Modeling"] },
+    ],
+  },
+  manager: {
+    name: "Blok Manager", icon: "👔", color: "#22d3ee", area: "Management Block",
+    desc: "Management Control Suite — Ruang kerja operasional tengah yang menghubungkan seluruh komunikasi antartim dan koordinasi proyek.",
+    roles: [
+      { title: "General / Operational Manager", lead: true, skills: ["Cross-Functional Operational Efficiency", "Business Process Optimization", "KPI Management", "Resource Allocation"] },
+      { title: "Senior Project Manager", skills: ["Project Management Frameworks (PMP/PRINCE2)", "Risk Management", "Budgeting & Timeline Control"] },
+      { title: "Scrum Master / Agile Coordinator", skills: ["Agile/Scrum Facilitation", "Sprint Planning", "Impediment Removal", "Kanban Workflow Optimization"] },
+    ],
+  },
+  direktur: {
+    name: "Blok Direktur", icon: "👑", color: "#fbbf24", area: "Executive Suite — Ruang Anda",
+    desc: "Executive Director's Office — Ruang kerja utama Direktur dengan meja terintegrasi teknologi dan area rapat privat VIP. CEO juga aktif sebagai dosen — pekerjaan mengajar didampingi Tim PNUP dan Tim Dosen UT di Lantai 4.",
+    roles: [
+      { title: "Direktur Utama / Chief Executive Officer (CEO)", lead: true, you: true, skills: ["Strategic Visioning & Long-Term Planning", "Executive Decision Making", "Capital & Investment Strategy", "Organizational Culture Leadership", "High-Level Stakeholder & Partnership Negotiations"] },
+      { title: "Executive Assistant / Personal Secretary", skills: ["High-Priority Schedule & Calendar Management", "Executive Protocol", "Information Filtering", "High-Level Confidentiality"] },
+      { title: "Strategic Advisor", skills: ["Industry Benchmark Analysis", "Corporate Governance", "M&A Consultation", "High-Level Problem Solving"] },
+    ],
+  },
+  ut: {
+    name: "Blok Dosen UT", icon: "🎓", color: "#a3e635", area: "UT Tutoring & Academic Block",
+    desc: "Pusat layanan akademik Universitas Terbuka — ruang tutor untuk kelas tutorial online (tuton), pendampingan tugas, dan bimbingan skripsi. Peralatan utama: TutorBot UT (agen otomasi e-learning Moodle — penilaian, balasan & rating forum, dashboard tutor).",
+    roles: [
+      { title: "Koordinator Tim Dosen UT", lead: true, skills: ["Academic Tutoring Leadership", "UT Curriculum Alignment", "Tutorial Program Management", "Student Success Monitoring"] },
+      { title: "Tutor UT — Kelas Tutorial Online (Tuton)", skills: ["Online Tutorial Facilitation", "Learning Management System (Moodle)", "Assignment Grading & Feedback", "Academic Writing Guidance"] },
+      { title: "Tutor UT — Bimbingan Skripsi & Tugas Akhir", skills: ["Research Methodology Coaching", "Thesis Structuring & Editing", "Turnitin / Plagiarism Check", "Referencing & Citation (APA/IEEE)"] },
+      { title: "TutorBot UT — Agen Otomasi E-Learning (Moodle)", skills: ["Moodle Automation (Form-Fidelity)", "Penilaian Tugas Otomatis (Rubrik)", "Balasan & Rating Forum Otomatis", "Feedback Gaya Tutor per Mahasiswa", "OCR & Ekstraksi Berkas Mahasiswa", "Verifikasi Baca-Ulang & Gradebook"] },
+      { title: "Administrasi Akademik UT", skills: ["KRS/KHS Administration", "Academic Records Management", "Student Communication Handling", "Virtual Student Service"] },
+    ],
+  },
+  aula: {
+    name: "Ruang Kelas & Tuton", icon: "📚", color: "#94a3b8", area: "Shared Classroom",
+    desc: "Ruang kelas digital untuk tutorial online, kelas tamu, dan sesi bimbingan bersama — terhubung langsung dengan Blok Dosen UT dan Blok Tim PNUP.",
+    roles: [],
+  },
+  pnup: {
+    name: "Blok Tim PNUP", icon: "🏛️", color: "#f43f5e", area: "PNUP Lecturer Support Block",
+    desc: "Tim pendukung operasional dosen dari PNUP — membantu pekerjaan CEO sebagai dosen: jadwal kuliah, materi pengajaran, absensi, dan koordinasi PKL.",
+    roles: [
+      { title: "Koordinator Tim PNUP", lead: true, skills: ["Lecturer Workload Coordination", "Academic Operations Support", "Cross-Institution Liaison", "Teaching Schedule Management"] },
+      { title: "Asisten Mengajar & Riset", skills: ["Lecture Material Development", "Research Data Assistance", "Journal & Publication Support", "Lecture Slide Design"] },
+      { title: "Admin Kelas & E-Learning", skills: ["Class Scheduling", "E-Learning Platform Management", "Attendance & Grade Reporting", "Academic Data Entry"] },
+      { title: "Penunjang PKL & Kerja Praktik", skills: ["Practicum (PKL) Coordination", "Industry Partner Liaison", "Student Supervision Admin", "Internship Reporting"] },
+    ],
+  },
+};
+
+const FLOORS = [
+  { id: 4, name: "Lantai 4", sub: "Akademik & Dosen", blocks: ["ut", "aula", "pnup"] },
+  { id: 3, name: "Lantai 3", sub: "Strategi & Eksekutif", blocks: ["direktur", "manager", "marketing"] },
+  { id: 2, name: "Lantai 2", sub: "Inovasi, Riset & Produksi", blocks: ["it", "riset", "designer"] },
+  { id: 1, name: "Lantai 1", sub: "Pelayanan & Operasional Keuangan", blocks: ["resepsionis", "lobby", "keuangan"] },
+];
+
+const ORG_ORDER = ["resepsionis", "keuangan", "it", "riset", "designer", "marketing", "manager", "ut", "pnup"];
+const MATRIX_ORDER = ["resepsionis", "keuangan", "it", "riset", "designer", "marketing", "manager", "ut", "pnup", "direktur"];
+const floorOf = {};
+FLOORS.forEach(f => f.blocks.forEach(b => floorOf[b] = f));
+
+/* Aktivitas kantor = tugas asli dari state (perintah Freebuff), bukan simulasi. */
+
+/* =====================================================================
+   HELPERS
+   ===================================================================== */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const roleCount = (id) => BLOCKS[id].roles.length;
+const totalRoles = () => MATRIX_ORDER.reduce((n, id) => n + roleCount(id), 0);
+const totalSkills = () => MATRIX_ORDER.reduce((n, id) => n + BLOCKS[id].roles.reduce((m, r) => m + r.skills.length, 0), 0);
+const uniqueSkills = () => { const set = new Set(); MATRIX_ORDER.forEach(id => BLOCKS[id].roles.forEach(r => r.skills.forEach(s => set.add(s)))); return set.size; };
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+/* =====================================================================
+   STATS
+   ===================================================================== */
+function renderStats() {
+  const items = [
+    [FLOORS.length, "Lantai Gedung"],
+    [MATRIX_ORDER.length, "Blok Tim"],
+    [totalRoles(), "Profesional"],
+    [(typeof ZR_DATA !== "undefined" ? ZR_DATA.projects.length : 0), "Proyek Tim"],
+    [uniqueSkills(), "Keahlian Unik"],
+    [totalSkills(), "Total Skill Entries"],
+  ];
+  $("#stats").innerHTML = items.map(([n, l]) => `<div class="stat"><b>${n}</b><span>${l}</span></div>`).join("");
+}
+
+/* =====================================================================
+   KANTOR 3D — DENAH ISOMETRIK + KARAKTER BERGERAK
+   ===================================================================== */
+const ISO = { HW: 30, HH: 15, ZH: 34, WH: 1.05 };
+const cam = { angle: 0, zoom: 1, panX: 0, panY: 0, focus: null };
+const iso = (x, y, z) => {
+  const a = cam.angle, ca = Math.cos(a), sa = Math.sin(a);
+  const xr = x * ca - y * sa, yr = x * sa + y * ca;
+  return [(xr - yr) * ISO.HW, (xr + yr) * ISO.HH - z * ISO.ZH];
+};
+const floorZ = () => 0;
+const pts = (arr) => arr.map(p => iso(p[0], p[1], p[2]).map(v => Math.round(v * 10) / 10).join(",")).join(" ");
+/* SATU LANTAI — struktur asli dipertahankan: tiap baris = bekas lantai gedung (1→4) */
+const LAYOUT = { colW: 3.0, colGap: 0.35, rowD: 2.3, corrH: 0.8, padX: 0.5, padY: 0.45 };
+const CELLS = [
+  { bid: "resepsionis", col: 0, row: 0 }, { bid: "lobby", col: 1, row: 0 }, { bid: "keuangan", col: 2, row: 0 },
+  { bid: "it", col: 0, row: 1 }, { bid: "riset", col: 1, row: 1 }, { bid: "designer", col: 2, row: 1 },
+  { bid: "marketing", col: 0, row: 2 }, { bid: "manager", col: 1, row: 2 }, { bid: "direktur", col: 2, row: 2 },
+  { bid: "ut", col: 0, row: 3 }, { bid: "aula", col: 1, row: 3 }, { bid: "pnup", col: 2, row: 3 },
+].map(c => {
+  const x1 = LAYOUT.padX + c.col * (LAYOUT.colW + LAYOUT.colGap);
+  const y1 = LAYOUT.padY + c.row * (LAYOUT.rowD + LAYOUT.corrH);
+  const w = c.bid === "direktur" ? 3.9 : LAYOUT.colW;   // Ruang Direktur lebih luas
+  const d = c.bid === "direktur" ? 2.65 : LAYOUT.rowD;
+  return Object.assign({}, c, { x1, x2: x1 + w, y1, y2: y1 + d });
+});
+const cellOf = {}; CELLS.forEach(c => cellOf[c.bid] = c);
+const corrY = (row) => LAYOUT.padY + row * (LAYOUT.rowD + LAYOUT.corrH) + LAYOUT.rowD + LAYOUT.corrH / 2;
+const vGapX = (col) => LAYOUT.padX + col * (LAYOUT.colW + LAYOUT.colGap) - LAYOUT.colGap / 2;
+const P = (hex, f) => { const n = parseInt(hex.slice(1), 16); const c = v => Math.min(255, Math.round(v * f)); return `rgb(${c((n >> 16) & 255)},${c((n >> 8) & 255)},${c(n & 255)})`; };
+
+const svgEl = document.getElementById("isoScene");
+const CHARS = [];
+
+function deskAt(x, y, color) {
+  const z = 0.42;
+  let s = "";
+  s += `<polygon points="${pts([[x, y, 0], [x + 1.05, y, 0], [x + 1.05, y + .55, 0], [x, y + .55, 0]])}" fill="rgba(0,0,0,.3)"/>`;
+  s += `<polygon points="${pts([[x, y, z], [x + 1.05, y, z], [x + 1.05, y + .55, z], [x, y + .55, z]])}" fill="#8b6f47" stroke="rgba(255,255,255,.18)"/>`;
+  s += `<polygon points="${pts([[x, y + .55, z], [x + 1.05, y + .55, z], [x + 1.05, y + .55, z - .08], [x, y + .55, z - .08]])}" fill="#6b5436"/>`;
+  const mx = x + .3;
+  s += `<polygon points="${pts([[mx, y + .1, z], [mx + .45, y + .1, z], [mx + .45, y + .1, z + .34], [mx, y + .1, z + .34]])}" fill="#0f172a" stroke="#334155"/>`;
+  s += `<polygon points="${pts([[mx + .05, y + .09, z + .04], [mx + .4, y + .09, z + .04], [mx + .4, y + .09, z + .3], [mx + .05, y + .09, z + .3]])}" fill="#38bdf8" opacity=".7"/>`;
+  const px = x + .52, py = y + .8;
+  s += `<polygon points="${pts([[px - .17, py - .05, 0], [px + .17, py - .05, 0], [px + .17, py + .16, 0], [px - .17, py + .16, 0]])}" fill="rgba(0,0,0,.32)"/>`;
+  s += `<polygon points="${pts([[px - .19, py - .03, .22], [px + .19, py - .03, .22], [px + .19, py - .03, .58], [px - .19, py - .03, .58]])}" fill="#243047"/>`;
+  s += `<polygon points="${pts([[px - .16, py + .02, .02], [px + .16, py + .02, .02], [px + .16, py + .02, .46], [px - .16, py + .02, .46]])}" fill="${color}"/>`;
+  const [hx, hy] = iso(px, py + .02, .54);
+  s += `<circle cx="${hx.toFixed(1)}" cy="${hy.toFixed(1)}" r="4.5" fill="#f0c09a"/>`;
+  s += `<path d="M${(hx - 4.5).toFixed(1)},${(hy - .8).toFixed(1)} a4.5,4.5 0 0 1 9,0 z" fill="#33261b"/>`;
+  const [ax, ay] = iso(px, py + .12, .3);
+  s += `<g class="typist"><rect x="${(ax - 2.4).toFixed(1)}" y="${(ay - 1).toFixed(1)}" width="2" height="4.6" rx="1" fill="#f0c09a"/><rect x="${(ax + .5).toFixed(1)}" y="${(ay - 1).toFixed(1)}" width="2" height="4.6" rx="1" fill="#e0a978"/></g>`;
+  return s;
+}
+
+function roomInterior(cell) {
+  const b = BLOCKS[cell.bid];
+  const { x1, x2, y1, y2 } = cell;
+  let s = "";
+  if (cell.bid === "lobby") {
+    s += deskAt(x1 + .4, y1 + .55, b.color);
+    [[x2 - .75, y1 + .45], [x2 - .75, y2 - 1.1]].forEach(function (p) {
+      const [cx2, cy2] = iso(p[0] + .2, p[1] + .2, 0);
+      s += `<ellipse cx="${cx2.toFixed(1)}" cy="${cy2.toFixed(1)}" rx="6.5" ry="3" fill="rgba(0,0,0,.3)"/>`;
+      s += `<circle cx="${cx2.toFixed(1)}" cy="${(cy2 - 7.5).toFixed(1)}" r="6.8" fill="#22c55e"/>`;
+      s += `<circle cx="${(cx2 - 3).toFixed(1)}" cy="${(cy2 - 10).toFixed(1)}" r="3.6" fill="#16a34a"/>`;
+      s += `<rect x="${(cx2 - 2.2).toFixed(1)}" y="${(cy2 - 3.6).toFixed(1)}" width="4.4" height="4" rx="1" fill="#78350f"/>`;
+    });
+  } else if (cell.bid === "aula") {
+    for (let r = 0; r < 2; r++) for (let k = 0; k < 3; k++) {
+      const dx = x1 + .45 + k * .82, dy = y1 + .55 + r * .85;
+      s += `<polygon points="${pts([[dx, dy, 0], [dx + .52, dy, 0], [dx + .52, dy + .42, 0], [dx, dy + .42, 0]])}" fill="rgba(0,0,0,.3)"/>`;
+      s += `<polygon points="${pts([[dx, dy, .3], [dx + .52, dy, .3], [dx + .52, dy + .42, .3], [dx, dy + .42, .3]])}" fill="#3b4a63"/>`;
+      s += `<polygon points="${pts([[dx, dy + .42, 0], [dx + .52, dy + .42, 0], [dx + .52, dy + .42, .3], [dx, dy + .42, .3]])}" fill="#2a3549"/>`;
+    }
+  } else if (cell.bid === "direktur") {
+    s += deskAt(x1 + .4, y1 + .45, b.color);
+    s += deskAt(x1 + 1.7, y1 + .45, b.color);
+    s += deskAt(x1 + .4, y1 + 1.5, b.color);
+    s += deskAt(x1 + 1.7, y1 + 1.5, b.color);
+    const tx1 = x1 + 3.0, ty1 = y1 + .5, tx2 = x1 + 3.6, ty2 = y1 + 2.15;
+    s += `<polygon points="${pts([[tx1, ty1, 0], [tx2, ty1, 0], [tx2, ty2, 0], [tx1, ty2, 0]])}" fill="rgba(0,0,0,.3)"/>`;
+    s += `<polygon points="${pts([[tx1, ty1, .42], [tx2, ty1, .42], [tx2, ty2, .42], [tx1, ty2, .42]])}" fill="#9c7a4f" stroke="rgba(255,255,255,.2)"/>`;
+    s += `<polygon points="${pts([[tx1, ty2, .42], [tx2, ty2, .42], [tx2, ty2, .34], [tx1, ty2, .34]])}" fill="#6b5436"/>`;
+  } else {
+    const n = Math.min(4, Math.max(2, b.roles.length));
+    for (let k = 0; k < n; k++) {
+      const col = k % 2, rw = k > 1 ? 1 : 0;
+      s += deskAt(x1 + .35 + col * 1.28, y1 + .35 + rw * .95, b.color);
+    }
+  }
+  return s;
+}
+
+function roomSvg(cell) {
+  const b = BLOCKS[cell.bid], shared = b.roles.length === 0;
+  const { x1, x2, y1, y2 } = cell, zt = ISO.WH;
+  const cFloor = shared ? "#1a2333" : P(b.color, .48);
+  const cWallL = shared ? "#1a2333" : P(b.color, .62);
+  const cWallR = shared ? "#141c2b" : P(b.color, .42);
+  const stroke = shared ? 'stroke="#64748b" stroke-dasharray="4 3"' : 'stroke="rgba(255,255,255,.22)"';
+  const walls = [
+    { p: [[x1, y1], [x2, y1]] }, { p: [[x2, y1], [x2, y2]] },
+    { p: [[x2, y2], [x1, y2]] }, { p: [[x1, y2], [x1, y1]] },
+  ];
+  walls.forEach(w => { w.depth = iso((w.p[0][0] + w.p[1][0]) / 2, (w.p[0][1] + w.p[1][1]) / 2, 0)[1]; });
+  walls.sort((a, c) => a.depth - c.depth);
+  let s = `<g class="room-g" data-block="${cell.bid}"><title>${esc(b.name)} — klik untuk masuk ruangan</title>`;
+  walls.slice(0, 2).forEach(w => {
+    const a = w.p[0], c = w.p[1];
+    s += `<polygon points="${pts([[a[0], a[1], 0], [c[0], c[1], 0], [c[0], c[1], zt], [a[0], a[1], zt]])}" fill="${cWallL}" opacity=".92"/>`;
+  });
+  s += `<polygon points="${pts([[x1, y1, 0], [x2, y1, 0], [x2, y2, 0], [x1, y2, 0]])}" fill="${cFloor}" ${stroke}/>`;
+  s += roomInterior(cell);
+  walls.slice(2).forEach((w, i) => {
+    const a = w.p[0], c = w.p[1];
+    s += `<polygon points="${pts([[a[0], a[1], 0], [c[0], c[1], 0], [c[0], c[1], zt], [a[0], a[1], zt]])}" fill="${i === 0 ? cWallL : cWallR}"/>`;
+    s += `<polygon points="${pts([[a[0], a[1], zt], [c[0], c[1], zt], [c[0], c[1], zt - .12], [a[0], a[1], zt - .12]])}" fill="rgba(255,255,255,.35)"/>`;
+  });
+  const [tx, ty] = iso((x1 + x2) / 2, (y1 + y2) / 2, zt + .75);
+  const fs = b.name.length > 18 ? 9 : 10.5;
+  s += `<text class="lbl" x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" text-anchor="middle" font-size="${fs}" font-weight="700" fill="#fff">${esc(b.name)}</text>`;
+  if (shared) s += `<text class="lbl" x="${tx.toFixed(1)}" y="${(ty + 12).toFixed(1)}" text-anchor="middle" font-size="8.5" fill="#93a0b8">ruang bersama</text>`;
+  return s + `</g>`;
+}
+
+function charMarkup(color, i) {
+  const skins = ["#f2c49b", "#e0a978", "#c98d5f", "#a8703f"];
+  const hairs = ["#241c15", "#3b2a1a", "#57402a", "#111827"];
+  const skin = skins[i % skins.length], hair = hairs[i % hairs.length];
+  return `<ellipse cx="0" cy="1.5" rx="8" ry="3.3" fill="rgba(0,0,0,.42)"/>
+    <rect class="leg-a" x="-4.1" y="-9" width="3.5" height="10" rx="1.7" fill="#334155"/>
+    <rect class="leg-b" x="0.6" y="-9" width="3.5" height="10" rx="1.7" fill="#1f2a3d"/>
+    <rect class="arm-a" x="-8.2" y="-20" width="2.8" height="9.5" rx="1.4" fill="${skin}"/>
+    <rect class="arm-b" x="5.4" y="-20" width="2.8" height="9.5" rx="1.4" fill="${skin}"/>
+    <rect x="-5.6" y="-21" width="11.2" height="13.5" rx="3.6" fill="${color}"/>
+    <rect x="-5.6" y="-21" width="11.2" height="3.6" rx="1.8" fill="rgba(255,255,255,.3)"/>
+    <rect x="-1.1" y="-21" width="2.2" height="7" rx="1" fill="rgba(255,255,255,.5)"/>
+    <circle cx="0" cy="-25.5" r="5.1" fill="${skin}"/>
+    <path d="M-5.1,-26.1 a5.1,5.1 0 0 1 10.2,0 z" fill="${hair}"/>
+    <circle cx="-1.7" cy="-25" r=".55" fill="#1f2937"/>
+    <circle cx="1.7" cy="-25" r=".55" fill="#1f2937"/>
+    <path d="M-1.3,-23 q1.3,1 2.6,0" stroke="#8a5a2b" stroke-width=".75" fill="none" stroke-linecap="round"/>
+    <g class="bubble" transform="translate(0,-54)">
+      <rect class="bub-r" x="-40" y="-12" width="80" height="19" rx="9" fill="#0d1526" stroke="rgba(255,255,255,.22)"/>
+      <text class="bub-t" x="0" y="2" text-anchor="middle" font-size="9.5" fill="#e8edf7"></text>
+    </g>`;
+}
+
+function renderIso() {
+  let camG = document.getElementById("cam");
+  if (!camG) { svgEl.innerHTML = `<g id="cam"><g id="staticLayer"></g><g id="charLayer"></g></g>`; camG = document.getElementById("cam"); }
+  const staticLayer = document.getElementById("staticLayer");
+  const charLayer = document.getElementById("charLayer");
+  const out = [];
+  const fx1 = LAYOUT.padX - .35, fy1 = LAYOUT.padY - .35;
+  const fx2 = Math.max.apply(null, CELLS.map(c => c.x2)) + .35, fy2 = Math.max.apply(null, CELLS.map(c => c.y2)) + .35;
+  out.push(`<polygon points="${pts([[fx2, fy1, 0], [fx2, fy2, 0], [fx2, fy2, -.35], [fx2, fy1, -.35]])}" fill="#0f172a"/>`);
+  out.push(`<polygon points="${pts([[fx1, fy2, 0], [fx2, fy2, 0], [fx2, fy2, -.35], [fx1, fy2, -.35]])}" fill="#131c2e"/>`);
+  out.push(`<polygon points="${pts([[fx1, fy1, 0], [fx2, fy1, 0], [fx2, fy2, 0], [fx1, fy2, 0]])}" fill="#1e293b" stroke="rgba(255,255,255,.14)"/>`);
+  for (let r = 0; r < 4; r++) {
+    const cy = corrY(r);
+    if (cy > fy2 - .1) break;
+    out.push(`<polygon points="${pts([[fx1 + .15, cy - .26, .01], [fx2 - .15, cy - .26, .01], [fx2 - .15, cy + .26, .01], [fx1 + .15, cy + .26, .01]])}" fill="rgba(96,165,250,.08)"/>`);
+    out.push(`<line class="flowline" x1="${iso(fx1 + .4, cy, .02)[0]}" y1="${iso(fx1 + .4, cy, .02)[1]}" x2="${iso(fx2 - .4, cy, .02)[0]}" y2="${iso(fx2 - .4, cy, .02)[1]}" stroke="rgba(255,255,255,.25)" stroke-width="1.4"/>`);
+  }
+  [1, 2].forEach(cc => {
+    const vx = vGapX(cc);
+    out.push(`<polygon points="${pts([[vx - .2, fy1 + .15, .01], [vx + .2, fy1 + .15, .01], [vx + .2, fy2 - .15, .01], [vx - .2, fy2 - .15, .01]])}" fill="rgba(96,165,250,.06)"/>`);
+  });
+  const sorted = CELLS.slice().sort((a, b2) => iso((a.x1 + a.x2) / 2, (a.y1 + a.y2) / 2, 0)[1] - iso((b2.x1 + b2.x2) / 2, (b2.y1 + b2.y2) / 2, 0)[1]);
+  sorted.forEach(c => out.push(roomSvg(c)));
+  /* Plang identitas perusahaan di plaza depan gedung */
+  const signX = (fx1 + fx2) / 2, signY = fy2 + 1.3;
+  const [sxs, sys] = iso(signX, signY, 0);
+  out.push(`<text class="lbl" x="${sxs.toFixed(1)}" y="${sys.toFixed(1)}" text-anchor="middle" font-size="27" font-weight="800" fill="#fbbf24" letter-spacing="7">ZR CORP AI</text>`);
+  out.push(`<text class="lbl" x="${sxs.toFixed(1)}" y="${(sys + 17).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="#93a0b8" letter-spacing="5">KANTOR AI · IDENTITAS PERUSAHAAN</text>`);
+  staticLayer.innerHTML = out.join("");
+
+  CHARS.length = 0;
+  let ci = 0;
+  const cOut = [];
+  MATRIX_ORDER.forEach(bid => {
+    const b = BLOCKS[bid], cell = cellOf[bid];
+    if (!cell || !b.roles.length) return;
+    b.roles.slice(0, 3).forEach((r) => {
+      CHARS.push({ i: ci, g: null, bubble: null, bubR: null, bubT: null, legA: null, legB: null, blockId: bid, role: r, x: (cell.x1 + cell.x2) / 2, y: cell.y2 + .3 + (ci % 3) * .22, wp: [], state: "work", work: 2 + Math.random() * 5, phase: Math.random() * 6 });
+      cOut.push(`<g class="char" data-ci="${ci}" transform="translate(0,0)"><title>${esc(r.title)}</title>${charMarkup(b.color, ci)}</g>`);
+      ci++;
+    });
+  });
+  /* Satpam Ruang Direktur — hanya orang yang melapor pekerjaan yang boleh masuk */
+  const cd = cellOf.direktur;
+  const gx = (cd.x1 + cd.x2) / 2 + 1.35, gy = cd.y2 + .38;
+  cOut.push(`<g class="char" data-ci="-1" transform="translate(0,0)"><title>Satpam — hanya tamu yang melapor pekerjaan yang boleh masuk</title>${charMarkup("#334155", 3)}<text class="lbl" x="0" y="-38" text-anchor="middle" font-size="7" fill="#93a0b8">🛂 hanya yang melapor</text></g>`);
+  charLayer.innerHTML = cOut.join("");
+  svgEl.querySelectorAll("[data-ci]").forEach(g => {
+    const c = CHARS[+g.dataset.ci];
+    if (!c) return;
+    c.g = g; c.bubble = g.querySelector(".bubble"); c.bubR = g.querySelector(".bub-r"); c.bubT = g.querySelector(".bub-t");
+    c.legA = g.querySelector(".leg-a"); c.legB = g.querySelector(".leg-b");
+  });
+  const guardG = svgEl.querySelector('[data-ci="-1"]');
+  if (guardG) { const [gsx, gsy] = iso(gx, gy, 0); guardG.setAttribute("transform", `translate(${gsx.toFixed(1)},${gsy.toFixed(1)})`); }
+  updateChars(0);
+  applyCam();
+}
+
+function taskOf(bid) {
+  const a = lastSnap && lastSnap.agents && lastSnap.agents[bid];
+  return a && a.status === "working" && a.task ? a.task : null;
+}
+function showBubble(c) {
+  const task = taskOf(c.blockId);
+  const label = task ? `💼 ${task}` : `🪑 siaga`;
+  c.bubT.textContent = label;
+  const w = Math.min(195, 16 + label.length * 4.5);
+  c.bubR.setAttribute("x", (-w / 2).toFixed(1));
+  c.bubR.setAttribute("width", w.toFixed(1));
+  c.bubble.classList.add("on");
+}
+
+function chooseTarget(c) {
+  const reporting = !!taskOf(c.blockId);
+  let t;
+  if (reporting && c.blockId !== "direktur" && Math.random() < 0.45) {
+    t = cellOf.direktur; // hanya anggota yang punya tugas (laporan pekerjaan) yang melapor ke Direktur
+  } else {
+    const pool = CELLS.filter(x => x.bid !== "direktur" && x.bid !== c.blockId);
+    t = pool.length ? pick(pool) : cellOf.lobby;
+  }
+  const self = cellOf[c.blockId];
+  const corridorFrom = corrY(self.row), corridorTo = corrY(t.row);
+  const doorX = (t.x1 + t.x2) / 2, doorY = t.y2 + .3;
+  if (self.row === t.row) {
+    c.wp = [[c.x, corridorFrom], [doorX, corridorFrom], [doorX, doorY]];
+  } else {
+    const gx = ((self.col + t.col) / 2 <= 1) ? vGapX(1) : vGapX(2);
+    c.wp = [[c.x, corridorFrom], [gx, corridorFrom], [gx, corridorTo], [doorX, corridorTo], [doorX, doorY]];
+  }
+  c.state = "walk";
+}
+
+function updateChars(dt) {
+  for (const c of CHARS) {
+    if (!c.g) continue;
+    if (c.state === "walk") {
+      if (c.wp.length) {
+        const [tx, ty] = c.wp[0];
+        const dx = tx - c.x, dy = ty - c.y;
+        const dist = Math.hypot(dx, dy);
+        const step = 1.8 * dt;
+        if (dist <= step) { c.x = tx; c.y = ty; c.wp.shift(); }
+        else { c.x += dx / dist * step; c.y += dy / dist * step; }
+        c.phase += dt * 10;
+      }
+      if (!c.wp.length) { c.state = "work"; c.work = 3 + Math.random() * 6; showBubble(c); }
+    } else {
+      c.work -= dt;
+      c.phase += dt * 1.6;
+      if (c.work <= 0) { c.bubble.classList.remove("on"); chooseTarget(c); }
+    }
+    const walking = c.state === "walk";
+    const swing = walking ? Math.sin(c.phase) * 17 : 0;
+    c.legA.setAttribute("transform", `rotate(${swing.toFixed(1)} -2.3 -9)`);
+    c.legB.setAttribute("transform", `rotate(${(-swing).toFixed(1)} 2.3 -9)`);
+    const bob = walking ? Math.abs(Math.sin(c.phase)) * 1.8 : Math.sin(c.phase) * .4;
+    const [sx, sy] = iso(c.x, c.y, 0);
+    c.g.setAttribute("transform", `translate(${sx.toFixed(1)},${(sy - bob).toFixed(1)})`);
+  }
+}
+
+let lastT = performance.now();
+function loop(t) {
+  const dt = Math.min(0.05, (t - lastT) / 1000);
+  lastT = t;
+  if (!document.hidden) { updateChars(dt); }
+  requestAnimationFrame(loop);
+}
+
+/* ----- ticker aktivitas ----- */
+const tickList = document.getElementById("tickList");
+function addTick(c) {
+  const task = taskOf(c.blockId);
+  if (!task) return;
+  const time = new Date().toLocaleTimeString("id-ID", { hour12: false });
+  const li = document.createElement("li");
+  li.innerHTML = `<span style="flex:none">${BLOCKS[c.blockId].icon}</span><span><span class="t-time">${time}</span> ${esc(BLOCKS[c.blockId].name)}<span class="t-role">${esc(c.role.title)}</span>menjalankan tugas: “${esc(task)}”</span>`;
+  tickList.prepend(li);
+  while (tickList.children.length > 6) tickList.lastElementChild.remove();
+}
+setInterval(() => {
+  const working = CHARS.filter(c => c.state === "work" && taskOf(c.blockId));
+  if (working.length) addTick(pick(working));
+}, 7000);
+
+/* ----- kamera: zoom, putar, masuk ruangan ----- */
+const VB = { x: -430, y: -120, w: 830, h: 520 };
+function applyCam() {
+  document.getElementById("cam").setAttribute("transform", `translate(${cam.panX.toFixed(1)} ${cam.panY.toFixed(1)}) scale(${cam.zoom.toFixed(3)})`);
+  const inv = 1 / cam.zoom;
+  svgEl.querySelectorAll(".lbl").forEach(t => {
+    const x = t.getAttribute("x") || 0, y = t.getAttribute("y") || 0;
+    t.setAttribute("transform", `translate(${x} ${y}) scale(${inv.toFixed(3)}) translate(${(-x).toFixed(1)} ${(-y).toFixed(1)})`);
+  });
+  CHARS.forEach(c => { if (c.bubble) c.bubble.setAttribute("transform", `translate(0 -54) scale(${inv.toFixed(3)})`); });
+}
+function zoomAt(factor, sx, sy) {
+  const z2 = Math.min(6, Math.max(0.55, cam.zoom * factor));
+  const k = z2 / cam.zoom;
+  cam.panX = sx - (sx - cam.panX) * k;
+  cam.panY = sy - (sy - cam.panY) * k;
+  cam.zoom = z2;
+  applyCam();
+}
+function showFocusPanel(bid) {
+  const b = BLOCKS[bid], task = taskOf(bid);
+  const a = lastSnap && lastSnap.agents && lastSnap.agents[bid];
+  const fp = document.getElementById("focusPanel");
+  fp.style.setProperty("--fc", b.color);
+  const projs = (typeof ZR_DATA !== "undefined") ? ZR_DATA.projects.filter(p => p.team === bid) : [];
+  fp.innerHTML = `<div class="fp-head"><span class="fp-icon">${b.icon}</span>
+    <div><div class="fp-title">${esc(b.name)}</div><div class="fp-sub">${esc(b.area)} · ${b.roles.length} profesional · ${projs.length} proyek</div></div></div>
+    <div class="fp-task">${task ? `💼 Sedang mengerjakan: “${esc(task)}”${a && a.progress ? " · " + Math.min(100, Math.round(a.progress)) + "%" : ""}` : "🪑 Semua anggota siaga — menunggu perintah Freebuff."}</div>
+    ${a && a.skills && a.skills.length ? `<div class="fp-task">🎯 ${a.owner ? esc(a.owner) + " — menerapkan: " : "Skill terpakai: "}${a.skills.map(esc).join(" · ")}</div>` : ""}
+    ${bid === "direktur" ? `<div class="fp-task">🛂 Ruangan terbatas — hanya orang yang <b>melapor pekerjaan</b> yang boleh masuk (satpam di pintu).</div>` : ""}
+    <div class="fp-actions">
+      <button class="iso-btn" data-act="drawer">👥 Lihat tim &amp; skills</button>
+      <button class="iso-btn" data-act="back">← Kembali ke lantai</button>
+    </div>`;
+  fp.classList.add("open");
+  fp.onclick = (e) => {
+    const act = e.target.closest("[data-act]"); if (!act) return;
+    if (act.dataset.act === "drawer") openDrawer(bid); else exitFocus();
+  };
+}
+function focusRoom(bid) {
+  const cell = cellOf[bid]; if (!cell) return;
+  cam.focus = bid;
+  const [cx, cy] = iso((cell.x1 + cell.x2) / 2, (cell.y1 + cell.y2) / 2, 0);
+  cam.zoom = 2.7;
+  cam.panX = (VB.x + VB.w / 2) - cx * cam.zoom;
+  cam.panY = (VB.y + VB.h / 2) - cy * cam.zoom;
+  applyCam();
+  showFocusPanel(bid);
+}
+function exitFocus() {
+  cam.focus = null; cam.zoom = 1; cam.panX = 0; cam.panY = 0;
+  applyCam();
+  document.getElementById("focusPanel").classList.remove("open");
+}
+let drag = null, dragMoved = false;
+function wireIso() {
+  svgEl.addEventListener("click", (e) => {
+    if (dragMoved) return;
+    const g = e.target.closest("[data-block]");
+    if (g) focusRoom(g.dataset.block);
+  });
+  svgEl.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const rect = svgEl.getBoundingClientRect();
+    const sx = VB.x + (e.clientX - rect.left) / rect.width * VB.w;
+    const sy = VB.y + (e.clientY - rect.top) / rect.height * VB.h;
+    zoomAt(e.deltaY < 0 ? 1.12 : 1 / 1.12, sx, sy);
+  }, { passive: false });
+  svgEl.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    drag = { x: e.clientX, y: e.clientY }; dragMoved = false;
+    document.getElementById("cam").classList.add("dragging");
+    svgEl.setPointerCapture(e.pointerId);
+  });
+  svgEl.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    const rect = svgEl.getBoundingClientRect(), sc = VB.w / rect.width;
+    const dxs = e.clientX - drag.x, dys = e.clientY - drag.y;
+    cam.panX += dxs * sc; cam.panY += dys * sc;
+    if (Math.abs(dxs) + Math.abs(dys) > 2) dragMoved = true;
+    drag.x = e.clientX; drag.y = e.clientY;
+    applyCam();
+  });
+  const endDrag = () => { drag = null; document.getElementById("cam").classList.remove("dragging"); setTimeout(() => { dragMoved = false; }, 80); };
+  svgEl.addEventListener("pointerup", endDrag);
+  svgEl.addEventListener("pointercancel", endDrag);
+  document.getElementById("camZoomIn").addEventListener("click", () => zoomAt(1.3, VB.x + VB.w / 2, VB.y + VB.h / 2));
+  document.getElementById("camZoomOut").addEventListener("click", () => zoomAt(1 / 1.3, VB.x + VB.w / 2, VB.y + VB.h / 2));
+  document.getElementById("camRotL").addEventListener("click", () => { cam.angle -= Math.PI / 12; renderIso(); });
+  document.getElementById("camRotR").addEventListener("click", () => { cam.angle += Math.PI / 12; renderIso(); });
+  document.getElementById("camReset").addEventListener("click", exitFocus);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && cam.focus) exitFocus(); });
+}
+
+/* =====================================================================
+   DRAWER DETAIL
+   ===================================================================== */
+function openDrawer(id) {
+  const b = BLOCKS[id], f = floorOf[id];
+  const head = document.getElementById("drawerHead");
+  head.style.setProperty("--c", b.color);
+  document.getElementById("drawerFloor").textContent = `LANTAI ${f.id} · ${f.sub.toUpperCase()}`;
+  document.getElementById("drawerTitle").textContent = b.name;
+  document.getElementById("drawerArea").textContent = b.area;
+  const body = document.getElementById("drawerBody");
+  body.style.setProperty("--c", b.color);
+  let html = `<div class="room-desc">${esc(b.desc)}</div>`;
+  if (!b.roles.length) {
+    html += `<div class="hint" style="margin:0">🏢 Ruang bersama tanpa tim tetap — area sirkulasi antarblok.</div>`;
+  } else {
+    const lead = b.roles.find(r => r.lead);
+    const staff = b.roles.filter(r => !r.lead);
+    const roleCard = (r, isLead) => `
+      <div class="role-card ${isLead ? "lead" : ""}" style="--c:${b.color}">
+        <div class="role-title"><h5>${esc(r.title)}</h5>
+        <div style="display:flex;gap:6px;align-items:center;flex:none">
+        ${r.you ? '<span class="badge you">Anda Sendiri</span>' : isLead ? '<span class="badge">Ketua Tim</span>' : ""}
+        <button class="chat-me" data-bid="${id}" data-role="${esc(r.title)}" title="Chat dengan peran ini">💬 Tanya</button></div></div>
+        <div class="chips">${r.skills.map(s => `<span class="chip">${esc(s)}</span>`).join("")}</div>
+      </div>`;
+    if (lead) html += `<div class="sub-label">Ketua Tim</div>` + roleCard(lead, true);
+    if (staff.length) html += `<div class="sub-label">Tim (${staff.length} anggota)</div>` + staff.map(r => roleCard(r, false)).join("");
+    const projs = (typeof ZR_DATA !== "undefined") ? ZR_DATA.projects.filter(p => p.team === id) : [];
+    if (projs.length) html += `<div class="sub-label">Proyek Tim (${projs.length})</div>` +
+      projs.map(p => {
+        const pct = Math.round(p.tasks.filter(t => t[1]).length / p.tasks.length * 100);
+        return `<div class="role-card" style="--c:${b.color}">
+          <div class="role-title"><h5>📁 ${esc(p.name)}</h5><span class="badge">${pct}%</span></div>
+          <div style="margin-top:10px" class="pbar"><i style="width:${pct}%;--c:${b.color}"></i></div>
+        </div>`;
+      }).join("");
+    html += `<div class="sub-label">Matrix Skills Blok Ini</div>
+      <div class="chips">${[...new Set(b.roles.flatMap(r => r.skills))].map(s => `<span class="chip">${esc(s)}</span>`).join("")}</div>`;
+  }
+  body.innerHTML = html;
+  document.getElementById("drawer").classList.add("open");
+  document.getElementById("overlay").classList.add("open");
+  document.getElementById("drawerClose").focus();
+}
+function closeDrawer() {
+  document.getElementById("drawer").classList.remove("open");
+  document.getElementById("overlay").classList.remove("open");
+}
+
+/* =====================================================================
+   DENAH 2D
+   ===================================================================== */
+function renderFloors() {
+  const wrap = document.getElementById("floors");
+  wrap.innerHTML = "";
+  FLOORS.forEach(f => {
+    const rooms = f.blocks.map((id, i) => {
+      const b = BLOCKS[id];
+      const n = roleCount(id);
+      const card = `
+        <button class="room ${n ? "" : "empty"}" style="--c:${b.color}" data-block="${id}" ${n ? "" : 'tabindex="-1" aria-disabled="true"'}>
+          <div class="r-top"><div class="r-icon">${b.icon}</div><div class="r-count">${n ? "👥 " + n + " orang" : "🚻 Ruang bersama"}</div></div>
+          <div class="r-area">${esc(b.area)}</div>
+          <h4>${esc(b.name)}</h4>
+          <div class="r-desc">${esc(b.desc)}</div>
+          <div class="r-cta">${n ? "Lihat tim & skills →" : ""}</div>
+        </button>`;
+      return (i ? `<div class="conn">↔</div>` : "") + card;
+    }).join("");
+    const div = document.createElement("div");
+    div.className = "floor";
+    div.id = "floor-" + f.id;
+    div.innerHTML = `
+      <div class="floor-head"><span class="floor-badge">LANTAI ${f.id}</span>
+        <div><h3>${esc(f.name)}</h3><div class="floor-sub">${esc(f.sub)}</div></div></div>
+      <div class="floor-grid">${rooms}</div>`;
+    wrap.appendChild(div);
+  });
+  wrap.querySelectorAll(".room[data-block]").forEach(r => {
+    if (r.classList.contains("empty")) return;
+    r.addEventListener("click", () => openDrawer(r.dataset.block));
+  });
+  document.getElementById("denahSub").textContent =
+    `${FLOORS.length} lantai, ${MATRIX_ORDER.length} blok tim, ${totalRoles()} profesional — klik blok untuk detail tim. Folder & progres tiap tim ada di tab Folder & Progres.`;
+}
+
+/* =====================================================================
+   STRUKTUR ORGANISASI
+   ===================================================================== */
+function renderOrg() {
+  const ceo = BLOCKS.direktur.roles[0];
+  const support = BLOCKS.direktur.roles.slice(1);
+  const leads = ORG_ORDER.map(id => {
+    const b = BLOCKS[id];
+    const lead = b.roles.find(r => r.lead);
+    const members = b.roles.filter(r => !r.lead);
+    return `
+      <div class="lead-col" style="--c:${b.color}">
+        <div class="org-box" style="--c:${b.color}; border-color: color-mix(in srgb, ${b.color} 45%, transparent)">
+          <div class="block-label" style="--c:${b.color}">${b.icon} ${esc(b.name)}<br>Lantai ${floorOf[id].id}</div>
+          <div class="o-role">${esc(lead.title)}</div>
+          <div class="o-name">Ketua Tim</div>
+        </div>
+        <div class="members">
+          ${members.map(m => `<div class="member" style="--c:${b.color}">${esc(m.title)}<small>${m.skills.length} keahlian</small></div>`).join("")}
+        </div>
+      </div>`;
+  }).join("");
+  document.getElementById("org").innerHTML = `
+    <div class="org">
+      <div class="org-box ceo">
+        <div class="o-role">👑 ${esc(ceo.title)}</div>
+        <div class="o-name">Anda Sendiri · ZR Corp AI</div>
+        <span class="o-tag">Puncak Struktur</span>
+      </div>
+      <div class="org-support">
+        ${support.map(s => `<div class="org-box mini"><div class="o-role" style="font-size:13px">${esc(s.title)}</div><div class="o-name">Tim Pendukung Eksekutif</div></div>`).join("")}
+      </div>
+      <div class="vline"></div>
+      <div class="hline"></div>
+      <div class="leads">${leads}</div>
+    </div>`;
+  alignOrgLine();
+}
+function alignOrgLine() {
+  const h = document.querySelector(".hline");
+  const cols = document.querySelectorAll(".lead-col");
+  if (!h || !cols.length || !cols[0].getBoundingClientRect().width) return;
+  const first = cols[0].getBoundingClientRect();
+  const last = cols[cols.length - 1].getBoundingClientRect();
+  h.style.width = Math.max(0, (last.left + last.width / 2) - (first.left + first.width / 2)) + "px";
+}
+
+/* =====================================================================
+   MATRIX SKILLS
+   ===================================================================== */
+function renderMatrix(q = "") {
+  const query = q.trim().toLowerCase();
+  const body = document.getElementById("matrixBody");
+  let rows = "", shown = 0, blocksShown = 0;
+  MATRIX_ORDER.forEach(id => {
+    const b = BLOCKS[id];
+    const matches = b.roles.map(r => {
+      if (!query) return { r, hit: null };
+      const inTitle = r.title.toLowerCase().includes(query);
+      const inBlock = b.name.toLowerCase().includes(query);
+      const hitSkills = r.skills.filter(s => s.toLowerCase().includes(query));
+      if (inTitle || inBlock || hitSkills.length) return { r, hit: hitSkills };
+      return null;
+    }).filter(Boolean);
+    if (!matches.length) return;
+    blocksShown++;
+    rows += `<tr class="group" style="--c:${b.color}"><td colspan="3">${b.icon} ${esc(b.name)} — Lantai ${floorOf[id].id} · ${matches.length} posisi</td></tr>`;
+    matches.forEach(({ r, hit }) => {
+      shown++;
+      rows += `<tr class="row">
+        <td><span class="cell-block" style="--c:${b.color}"><span class="dot"></span>${esc(b.area)}</span></td>
+        <td class="cell-role">${esc(r.title)}<small>${r.you ? "👑 Anda Sendiri" : r.lead ? "⭐ Ketua Tim" : "Anggota tim"}</small></td>
+        <td><div class="chips" style="margin-top:0">${r.skills.map(s => `<span class="chip ${hit && hit.includes(s) ? "hit" : ""}">${esc(s)}</span>`).join("")}</div></td>
+      </tr>`;
+    });
+  });
+  if (!rows) rows = `<tr class="empty-row"><td colspan="3">Tidak ada posisi atau keahlian yang cocok dengan “${esc(q)}”.</td></tr>`;
+  body.innerHTML = rows;
+  document.getElementById("resultCount").textContent = query
+    ? `${shown} posisi di ${blocksShown} blok cocok`
+    : `${shown} posisi · ${totalSkills()} entri keahlian`;
+}
+
+/* =====================================================================
+   FOLDER TIM & MODUL PROGRES
+   ===================================================================== */
+const PROJECTS = (typeof ZR_DATA !== "undefined") ? ZR_DATA.projects : [];
+const projDone = p => p.tasks.reduce((n, t) => n + (t[1] ? 1 : 0), 0);
+const projPct = p => Math.round(projDone(p) / p.tasks.length * 100);
+function statusOf(pct) {
+  if (pct >= 100) return { label: "Selesai", cls: "st-done" };
+  if (pct >= 70) return { label: "Review", cls: "st-review" };
+  if (pct > 0) return { label: "Berjalan", cls: "st-run" };
+  return { label: "Perencanaan", cls: "st-plan" };
+}
+const teamProjects = tid => PROJECTS.filter(p => p.team === tid);
+const teamPct = tid => { const ps = teamProjects(tid); return ps.length ? Math.round(ps.reduce((s, p) => s + projPct(p), 0) / ps.length) : 0; };
+let sel = { team: null, project: null };
+
+function renderOverview() {
+  const totalT = PROJECTS.reduce((s, p) => s + p.tasks.length, 0);
+  const doneT = PROJECTS.reduce((s, p) => s + projDone(p), 0);
+  const pct = totalT ? Math.round(doneT / totalT * 100) : 0;
+  document.getElementById("ovStrip").innerHTML = `
+    <div class="stat"><b>${MATRIX_ORDER.length}</b><span>Tim</span></div>
+    <div class="stat"><b>${PROJECTS.length}</b><span>Proyek</span></div>
+    <div class="stat"><b>${doneT}/${totalT}</b><span>Task Selesai</span></div>
+    <div class="master"><div class="m-top"><span>📈 Rata-rata progres kantor</span><b>${pct}%</b></div><div class="pbar" style="--c:#60a5fa"><i style="width:${pct}%"></i></div></div>`;
+}
+
+function renderTree() {
+  const tree = document.getElementById("tree");
+  let h = `<div class="tree-root">📁 teams/</div>`;
+  MATRIX_ORDER.forEach(tid => {
+    const projs = teamProjects(tid);
+    if (!projs.length) return;
+    const b = BLOCKS[tid], pct = teamPct(tid);
+    h += `<button class="t-team ${sel.team === tid && !sel.project ? "active" : ""}" data-team="${tid}">
+      <span>${b.icon}</span><span class="t-name">${esc(b.name)}</span>
+      <span class="t-bar"><i style="width:${pct}%;background:${b.color}"></i></span><span class="t-pct">${pct}%</span></button>`;
+    h += projs.map(p => `<button class="t-proj ${sel.project === p.slug ? "active" : ""}" data-team="${tid}" data-proj="${p.slug}">
+      <span>📄</span><span class="t-name">${esc(p.name)}</span><span class="t-pct">${projPct(p)}%</span></button>`).join("");
+  });
+  tree.innerHTML = h;
+  tree.querySelectorAll(".t-team").forEach(b => b.addEventListener("click", () => { sel = { team: b.dataset.team, project: null }; renderFolder(); }));
+  tree.querySelectorAll(".t-proj").forEach(b => b.addEventListener("click", () => { sel = { team: b.dataset.team, project: b.dataset.proj }; renderFolder(); }));
+}
+
+function renderPane() {
+  const pane = document.getElementById("pane");
+  if (sel.project) {
+    const p = PROJECTS.find(x => x.slug === sel.project);
+    const b = BLOCKS[p.team];
+    const pct = projPct(p), st = statusOf(pct);
+    pane.innerHTML = `
+      <div class="crumbs">teams/<b>${p.team}</b>/projects/<b>${p.slug}</b>/ · <b>project.md</b></div>
+      <h3>📁 ${esc(p.name)}</h3>
+      <div class="p-desc">${esc(p.desc)}</div>
+      <div class="progress-mod" style="--c:${b.color}">
+        <div class="pm-top"><span>Modul Progres — ${projDone(p)}/${p.tasks.length} task selesai</span><span class="status-chip ${st.cls}">${st.label} · ${pct}%</span></div>
+        <div class="pbar"><i style="width:${pct}%"></i></div>
+      </div>
+      <div class="meta-grid">
+        <div class="meta-card"><span>Tim</span><b style="color:${b.color}">${b.icon} ${esc(b.name)}</b></div>
+        <div class="meta-card"><span>Lead</span><b>${esc(p.lead)}</b></div>
+        <div class="meta-card"><span>Deadline</span><b>${esc(p.deadline)}</b></div>
+        <div class="meta-card"><span>Status</span><b>${st.label}</b></div>
+      </div>
+      <div class="pane-sec-title">Checklist Task (klik untuk toggle)</div>
+      <div class="check-list">
+        ${p.tasks.map((t, i) => `<button class="check-item ${t[1] ? "done" : ""}" style="--c:${b.color}" data-task="${i}">
+          <span class="cbox">✓</span><span class="ctext">${esc(t[0])}</span></button>`).join("")}
+      </div>
+      <div class="pane-sec-title">🏭 Produk Nyata (file di disk)</div>
+      ${prodListHtml(p.team, p.slug)}`;
+    pane.querySelectorAll(".check-item").forEach(el => el.addEventListener("click", () => {
+      const t = p.tasks[+el.dataset.task];
+      t[1] = t[1] ? 0 : 1;
+      renderFolder();
+    }));
+    return;
+  }
+  if (sel.team) {
+    const b = BLOCKS[sel.team];
+    const projs = teamProjects(sel.team);
+    const pct = teamPct(sel.team);
+    pane.innerHTML = `
+      <div class="crumbs">teams/<b>${sel.team}</b>/ · ${projs.length} folder proyek</div>
+      <h3>${b.icon} ${esc(b.name)}</h3>
+      <div class="p-desc">${esc(b.desc)}</div>
+      <div class="progress-mod" style="--c:${b.color}">
+        <div class="pm-top"><span>Progres rata-rata tim</span><span class="status-chip ${statusOf(pct).cls}">${statusOf(pct).label} · ${pct}%</span></div>
+        <div class="pbar"><i style="width:${pct}%"></i></div>
+      </div>
+      <div class="pane-sec-title">Anggota Tim</div>
+      <div class="member-line">${b.roles.map(r => `<span>${r.lead ? "⭐ " : ""}${esc(r.title)}</span>`).join("")}</div>
+      <div class="pane-sec-title">Folder Proyek</div>
+      <div class="team-cards">
+        ${projs.map(p => {
+          const pp = projPct(p), st = statusOf(pp);
+          return `<button class="pcard" style="--c:${b.color}" data-proj="${p.slug}">
+            <h4>📁 ${esc(p.name)}</h4>
+            <div class="pbar"><i style="width:${pp}%"></i></div>
+            <div class="pc-meta"><span class="status-chip ${st.cls}">${st.label}</span><span>${projDone(p)}/${p.tasks.length} task · ${pp}%</span></div>
+          </button>`;
+        }).join("")}
+      </div>`;
+    pane.querySelectorAll(".pcard").forEach(el => el.addEventListener("click", () => { sel.project = el.dataset.proj; renderFolder(); }));
+    return;
+  }
+  pane.innerHTML = `
+    <div class="crumbs">teams/ · <b>${MATRIX_ORDER.length}</b> folder tim · <b>${PROJECTS.length}</b> folder proyek</div>
+    <h3>🏢 ZR Corp AI — Semua Tim</h3>
+    <div class="p-desc">Pilih tim di pohon folder kiri, atau langsung klik kartu di bawah. Setiap tim punya folder sendiri berisi folder proyek + <code>project.md</code>. Setiap direktif yang dieksekusi otak Freebuff <b>wajib menghasilkan produk nyata</b> (file di folder tim) + <b>laporan kerja</b> di folder <code>laporan/</code>.</div>
+    <div class="pane-sec-title">🧾 Laporan Kerja Otak Freebuff</div>
+    ${FILES.reports.length ? `<div class="prod-list">${FILES.reports.map(f => `<a class="prod-item" href="${f.url}" target="_blank" rel="noopener">🧾 ${esc(f.name)}<span class="sz">${(f.size / 1024).toFixed(1)} KB</span></a>`).join("")}</div>` : `<div class="p-desc">Belum ada laporan — akan dibuat otomatis bersamaan dengan eksekusi direktif.</div>`}
+    <div class="pane-sec-title">📊 Progres Semua Tim</div>
+    <div class="team-cards">
+      ${MATRIX_ORDER.map(tid => {
+        const b = BLOCKS[tid], pct = teamPct(tid), n = teamProjects(tid).length, st = statusOf(pct);
+        return `<button class="pcard" style="--c:${b.color}" data-team="${tid}">
+          <h4>${b.icon} ${esc(b.name)}</h4>
+          <div class="pbar"><i style="width:${pct}%"></i></div>
+          <div class="pc-meta"><span class="status-chip ${st.cls}">${st.label} · ${pct}%</span><span>${n} proyek</span></div>
+        </button>`;
+      }).join("")}
+    </div>`;
+  pane.querySelectorAll(".pcard").forEach(el => el.addEventListener("click", () => { sel = { team: el.dataset.team, project: null }; renderFolder(); }));
+}
+
+let FILES = { projects: [], reports: [] };
+async function fetchFiles() {
+  try { const r = await fetch("/api/files"); if (r.ok) FILES = await r.json(); } catch (e) { /* server mati — abaikan */ }
+}
+function prodListHtml(team, slug) {
+  const rec = FILES.projects.find(x => x.team === team && x.slug === slug);
+  const files = (rec && rec.files) || [];
+  if (!files.length) return `<div class="p-desc">Belum ada produk di folder ini — setiap direktif yang dieksekusi akan menulis file ke sini.</div>`;
+  return `<div class="prod-list">${files.map(f => `<a class="prod-item" href="${f.url}" target="_blank" rel="noopener">📄 ${esc(f.name)}<span class="sz">${(f.size / 1024).toFixed(1)} KB · ${esc((f.mtime || "").slice(0, 10))}</span></a>`).join("")}</div>`;
+}
+
+function renderFolder() { renderOverview(); renderTree(); renderPane(); }
+
+/* =====================================================================
+   NAV & EVENTS
+   ===================================================================== */
+function switchView(name) {
+  document.querySelectorAll("nav.tabs button").forEach(b => b.classList.toggle("active", b.dataset.view === name));
+  document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + name));
+  if (name === "struktur") alignOrgLine();
+  if (name === "folder") { fetchFiles().then(renderFolder); }
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+document.querySelectorAll("nav.tabs button").forEach(b => b.addEventListener("click", () => switchView(b.dataset.view)));
+window.addEventListener("resize", () => { if (document.getElementById("view-struktur").classList.contains("active")) alignOrgLine(); });
+
+document.getElementById("globalSearch").addEventListener("input", (e) => {
+  const v = e.target.value;
+  document.getElementById("matrixSearch").value = v;
+  if (v.trim()) switchView("matrix");
+  renderMatrix(v);
+});
+document.getElementById("matrixSearch").addEventListener("input", (e) => {
+  document.getElementById("globalSearch").value = e.target.value;
+  renderMatrix(e.target.value);
+});
+document.getElementById("overlay").addEventListener("click", closeDrawer);
+document.getElementById("drawerClose").addEventListener("click", closeDrawer);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDrawer(); });
+
+/* ===== KANTOR AGEN (client) ===== */
+let agentOnline = false, agentEngine = "demo", autoWork = false, autoTimer = null, pollTimer = null;
+const $id = (i) => document.getElementById(i);
+const DEMO = { agents: {}, queue: [], log: [], seq: 0 };
+const DEMO_BUCKETS = [
+  { re: /kampanye|marketing|iklan|launch|promosi|gtm/i, teams: ["marketing", "designer"] },
+  { re: /kode|website|sistem|api|deploy|ai|rag|model|keamanan/i, teams: ["it", "riset"] },
+  { re: /keuangan|anggaran|pajak|gaji|invoice/i, teams: ["keuangan"] },
+  { re: /tuton|kuliah|skripsi|mahasiswa|dosen|materi|bimbingan/i, teams: ["ut", "pnup"] },
+  { re: /pkl|absensi|jadwal kuliah/i, teams: ["pnup"] },
+  { re: /desain|ui|ux|logo|brand/i, teams: ["designer"] },
+  { re: /riset|paper|benchmark/i, teams: ["riset"] },
+  { re: /kpi|okr|sprint|proses/i, teams: ["manager"] },
+  { re: /tamu|reservasi|event/i, teams: ["resepsionis"] },
+  { re: /investor|mitra|pendanaan/i, teams: ["direktur"] },
+];
+function demoNow() { return new Date().toLocaleTimeString("id-ID", { hour12: false }); }
+function demoAssign(team, task) { const a = DEMO.agents[team]; if (!a) return; if (a.status !== "working") { a.status = "working"; a.task = task; a.progress = 0; DEMO.log.unshift({ id: ++DEMO.seq, time: demoNow(), blockId: team, kind: "assign", text: `menerima tugas: “${task}”` }); } else DEMO.queue.push({ team, text: task }); }
+function demoDirective(text) {
+  const bucket = DEMO_BUCKETS.find(b => b.re.test(text)) || { teams: ["manager"] };
+  const g = text.length > 60 ? text.slice(0, 57) + "…" : text;
+  const plan = bucket.teams.map(team => ({ team, tasks: ["Analisis kebutuhan & data awal — " + g, "Eksekusi bertahap — " + g, "Review & laporan akhir — " + g] }));
+  DEMO.log.unshift({ id: ++DEMO.seq, time: demoNow(), blockId: "direktur", kind: "directive", text: `memerintahkan: “${g}” → ${plan.length} tim ditugaskan (demo)` });
+  plan.forEach(a => a.tasks.forEach(t => demoAssign(a.team, t)));
+  return { engine: "demo", plan };
+}
+function demoTick() {
+  for (const [team, a] of Object.entries(DEMO.agents)) {
+    if (a.status !== "working") continue;
+    a.progress += 7 + Math.random() * 11;
+    if (a.progress >= 100) {
+      const done = a.task; DEMO.log.unshift({ id: ++DEMO.seq, time: demoNow(), blockId: team, kind: "done", text: `✅ menyelesaikan “${done}”` });
+      const i = DEMO.queue.findIndex(q => q.team === team);
+      if (i >= 0) { const n = DEMO.queue.splice(i, 1)[0]; a.task = n.text; a.progress = 0; }
+      else { a.status = "idle"; a.task = null; a.progress = 0; }
+    }
+  }
+  return { agents: DEMO.agents, queue: DEMO.queue, log: DEMO.log };
+}
+async function agentApi(path, opts) { const r = await fetch(path, opts); if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }
+const agentPost = (path, body) => agentApi(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+
+function pushAgentTick(e) {
+  const b = BLOCKS[e.blockId];
+  const li = document.createElement("li");
+  li.innerHTML = `<span style="flex:none">${b ? b.icon : "🤖"}</span><span><span class="t-time">${esc(e.time || demoNow())}</span> ${esc(b ? b.name : "Kantor")}${e.role ? `<span class="t-role">${esc(e.role)}</span>` : ""}${esc(e.text)}</span>`;
+  tickList.prepend(li);
+  while (tickList.children.length > 6) tickList.lastElementChild.remove();
+}
+function renderAgents(snap) {
+  const grid = $id("agentGrid");
+  grid.innerHTML = MATRIX_ORDER.map(bid => {
+    const b = BLOCKS[bid], a = (snap && snap.agents && snap.agents[bid]) || { status: "idle", task: null, progress: 0 };
+    const pct = Math.min(100, Math.round(a.progress || 0));
+    const seats = ("🪑").repeat(Math.min(3, b.roles.length)) + (b.roles.length > 3 ? "+" : "");
+    const working = a.status === "working";
+    const note = working && a.task ? a.task : "menunggu perintah otak Freebuff…";
+    const skillChips = working && a.skills && a.skills.length
+      ? `<div class="d-skills">${a.skills.slice(0, 3).map(sk => `<span class="d-skill">🎯 ${esc(sk)}</span>`).join("")}</div>`
+      : "";
+    const ownerLine = working && a.owner ? `<div class="d-seats">👤 ${esc(a.owner)}</div>` : "";
+    return `<div class="desk ${working ? "working" : ""}" style="--c:${b.color}" title="${esc(b.name)} — ${b.roles.length} profesional">
+      <div class="d-top"><span class="d-avatar">${b.icon}</span>
+        <div><div class="d-name">${esc(b.name)}</div><div class="d-seats">${seats} · ${b.roles.length} profesional</div></div>
+        <span class="led"></span></div>
+      <div class="d-screen"><span class="mon">${working ? "💼" : "☕"}</span><span class="txt">${esc(note)}</span></div>
+      ${skillChips}${ownerLine}
+      <div class="d-bar"><i style="width:${pct}%"></i></div>
+      <div class="d-meta"><span>${esc(b.area)}</span><span>${working ? pct + "% bekerja" : "siaga"}</span></div>
+    </div>`;
+  }).join("");
+}
+function renderChats(snap) {
+  const log = $id("chatLog");
+  const sel = $id("chatRole").value;
+  let chats = (snap && snap.chats) || [];
+  if (sel && sel !== "semua") {
+    const [bid, role] = sel.split("|");
+    chats = chats.filter(c => c.team === bid && (!role || !c.role || c.role === role));
+  }
+  if (!chats.length) { log.innerHTML = `<div class="bub think">Belum ada percakapan untuk pilihan ini.</div>`; return; }
+  log.innerHTML = chats.slice(0, 20).reverse().map(c => {
+    const b = BLOCKS[c.team];
+    const ai = c.reply ? `<div class="bub ai"><span class="who">${b ? b.icon : "🤖"} ${esc(c.role || "Agen")}</span>${esc(c.reply)}</div>`
+      : `<div class="bub think">${b ? b.icon : "🤖"} ${esc(c.role || "Agen")} — menunggu otak Freebuff…</div>`;
+    return `<div class="bub me"><span class="who">Anda</span>${esc(c.message)}</div>` + ai;
+  }).join("");
+  log.scrollTop = log.scrollHeight;
+}
+let drainId = 0;
+function drainLog(snap) {
+  const log = (snap && snap.log) || [];
+  const fresh = log.filter(e => e.id > drainId);
+  if (fresh.length) { fresh.slice(0, 4).reverse().forEach(pushAgentTick); drainId = Math.max(drainId, ...fresh.map(e => e.id)); }
+}
+let lastSnap = null;
+function renderDirective(snap) {
+  const out = $id("planOut"); if (!out) return;
+  const dirs = (snap && snap.directives) || [];
+  if (!dirs.length) { out.innerHTML = `<div class="plan-note">📭 Belum ada perintah direktur — tulis di chat Freebuff untuk memulai kantor bekerja.</div>`; return; }
+  const d = dirs[0];
+  const stCls = d.status === "done" ? "done" : (d.status === "waiting" ? "waiting" : "working");
+  const stLabel = d.status === "done" ? "Selesai" : (d.status === "waiting" ? "Menunggu Otak Freebuff" : "Sedang Dikerjakan");
+  const all = dirs.length > 1 ? `<span class="dir-meta" style="display:inline-flex"><span>+${dirs.length - 1} perintah sebelumnya</span></span>` : "";
+  let html = `<div><span class="dir-status ${stCls}">${stLabel}</span> <span class="dir-meta" style="display:inline-flex"><span>🕐 ${esc(d.time)}</span><span style="font-weight:700">${esc(d.id)}</span></span> ${all}</div>
+    <div class="dir-text">“${esc(d.text)}”</div>`;
+  if (d.plan && d.plan.length) {
+    html += d.plan.map(a => { const b = BLOCKS[a.team]; if (!b) return ""; const roles = (a.roles && a.roles.length) ? `<div class="plan-skills" style="--c:${b.color}">🎯 ${a.roles.map(r => `<b>${esc(r.role)}</b> <span class="dir-meta" style="display:inline">(${(r.skills || []).map(esc).join(" · ")})</span>`).join("")}</div>` : ""; return `<div class="plan-team" style="--c:${b.color}"><b>${b.icon} ${esc(b.name)} — ${a.tasks.length} tugas</b><ol>${a.tasks.map(t => `<li>${esc(t)}</li>`).join("")}</ol>${roles}</div>`; }).join("");
+    html += `<div class="plan-note">🎯 Setiap tugas dipetakan ke <b>skill matrix</b> peran yang paling sesuai — pekerjaan lebih terarah.</div>`;
+  }
+  if (d.deliverables && d.deliverables.length) {
+    html += `<div class="dir-deliv"><b>📄 Produk &amp; laporan (klik untuk membuka):</b><br>${d.deliverables.map(p => `<a href="/${encodeURI(p)}" target="_blank" rel="noopener">${esc(p)}</a>`).join("<br>")}</div>`;
+  }
+  html += `<div class="plan-note">➡️ Perintah baru &amp; chat dikirim dari thread <b>Freebuff</b> — bukan dari halaman ini.</div>`;
+  out.innerHTML = html;
+}
+function renderBrain(snap) {
+  const el = $id("brainBar"); if (!el) return;
+  const b = snap && snap.brain;
+  if (!b || (b.status !== "working" && b.status !== "done")) { el.hidden = true; el.innerHTML = ""; return; }
+  el.hidden = false;
+  const since = b.since ? new Date(b.since).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "";
+  if (b.status === "working") {
+    el.className = "brain-bar on";
+    el.innerHTML = `<span class="bb-dot"></span><span><b>🧠 Otak Freebuff sedang bekerja:</b> ${esc(b.message || "memproses perintah…")}<span class="bb-sub">mulai ${esc(since)} — UI ini ikut ter-update tiap 2 detik dari kantor/state.json</span></span>`;
+  } else {
+    el.className = "brain-bar done";
+    el.innerHTML = `<span class="bb-dot"></span><span><b>✅ Otak Freebuff:</b> ${esc(b.message || "selesai")}${since ? `<span class="bb-sub">selesai ${esc(since)}</span>` : ""}</span>`;
+  }
+}
+function paintSnapshot(snap) {
+  lastSnap = snap; renderBrain(snap); renderDirective(snap); renderAgents(snap); renderChats(snap); renderFeed(snap); drainLog(snap);
+  CHARS.forEach(c => { if (c.bubble && c.bubble.classList.contains("on")) showBubble(c); });
+}
+
+async function sendDirective() {
+  const input = $id("directiveInput"), text = input.value.trim();
+  if (!text) return;
+  const btn = $id("directiveBtn"); btn.disabled = true;
+  $id("planOut").innerHTML = `<div class="plan-note">🧠 ${agentEngine === "freebuff" ? "Perintah dikirim ke otak Freebuff…" : "CEO sedang memecah tugas…"}</div>`;
+  try {
+    let plan;
+    if (agentOnline) { const out = await agentPost("/api/directive", { text }); plan = plan || out.plan; paintSnapshot(out.state); }
+    else plan = demoDirective(text);
+    input.value = "";
+    if (plan && plan.length) {
+      $id("planOut").innerHTML = plan.map(a => { const b = BLOCKS[a.team]; return `<div class="plan-team" style="--c:${b.color}"><b>${b.icon} ${esc(b.name)} — ${a.tasks.length} tugas</b><ol>${a.tasks.map(t => `<li>${esc(t)}</li>`).join("")}</ol></div>`; }).join("")
+        + `<div class="plan-note">${agentEngine === "freebuff" ? "🧠 Otak Freebuff: tugas masuk kantor/state.json — kerjakan lalu katakan “proses kantor” pada agen Freebuff untuk memperbarui progres." : "Tugas langsung ditugaskan ke agen."}</div>`;
+      if (!autoWork && !agentOnline) { for (let i = 0; i < 3; i++) tickWork(); }
+    } else {
+      $id("planOut").innerHTML = `<div class="plan-note">📨 ${agentEngine === "freebuff" ? "Perintah diterima & tercatat di antrean otak Freebuff (kantor/state.json). Progres akan muncul di sini setelah diproses." : "Tidak ada rencana."}</div>`;
+    }
+  } catch (e) { $id("planOut").innerHTML = `<div class="plan-note">⚠️ Gagal mengirim: ${esc(String(e.message || e))}</div>`; }
+  btn.disabled = false;
+}
+async function sendChat() {
+  const input = $id("chatInput"), msg = input.value.trim();
+  if (!msg) return;
+  const [bid, role] = $id("chatRole").value.split("|");
+  if (!bid || bid === "semua") { $id("chatLog").insertAdjacentHTML("beforeend", `<div class="bub think">Pilih satu peran dulu sebelum mengirim pesan.</div>`); return; }
+  input.value = "";
+  if (agentOnline) {
+    $id("chatLog").insertAdjacentHTML("beforeend", `<div class="bub me"><span class="who">Anda</span>${esc(msg)}</div><div class="bub think">📨 ${esc(role)} — menunggu otak Freebuff…</div>`);
+    try { const out = await agentPost("/api/chat", { blockId: bid, roleTitle: role, message: msg }); paintSnapshot(out.state); } catch (e) { pushAgentTick({ blockId: bid, text: "⚠️ gagal mengirim pesan: " + e.message }); }
+  } else {
+    const think = document.createElement("div"); think.className = "bub think"; think.textContent = "berpikir…";
+    $id("chatLog").append(document.createElement("div"), think);
+    think.previousElementSibling.className = "bub me"; think.previousElementSibling.innerHTML = `<span class="who">Anda</span>${esc(msg)}`;
+    setTimeout(() => { think.className = "bub ai"; think.innerHTML = `<span class="who">${BLOCKS[bid].icon} ${esc(role)}</span>Mode demo: saya ${esc(role)} — ${esc(BLOCKS[bid].area)}. Tulis perintah di Konsol Perintah, atau jalankan <b>node server.cjs</b> agar terhubung ke otak Freebuff/LLM sungguhan.`; }, 400);
+  }
+}
+async function tickWork() {
+  if (!agentOnline) { paintSnapshot(demoTick()); return; }
+  try { const out = await agentPost("/api/worktick", {}); paintSnapshot(out.state); } catch (e) { /* server mati */ }
+}
+function setAuto(on) {
+  autoWork = on;
+  const btn = $id("autoWorkBtn");
+  btn.classList.toggle("on", on);
+  btn.textContent = on ? "⏸ Matikan Auto-Work" : "▶ Nyalakan Auto-Work";
+  clearInterval(autoTimer);
+  if (on) autoTimer = setInterval(tickWork, 2200);
+}
+function showAgentBanner(html, showBtn) {
+  const bn = $id("agentBanner");
+  $id("agentBannerText").innerHTML = html;
+  $id("demoBtn").hidden = !showBtn;
+  bn.hidden = false;
+}
+function applyInputMode() {
+  const ro = agentEngine === "freebuff";
+  $id("uiInputs").hidden = ro;
+  $id("chatInputs").hidden = ro;
+  $id("roNote").hidden = !ro;
+}
+async function runTutorbot(cmd, args) {
+  const outEl = $id("tbOut");
+  outEl.textContent = `$ python3 -m tutorbot ${cmd} ${args || ""}\n…menjalankan`;
+  try {
+    const r = await agentPost("/api/tutorbot", { cmd, args: args ? args.split(/\s+/).filter(Boolean) : [] });
+    outEl.textContent = (r.ok ? `$ python3 -m tutorbot ${r.cmd} ${(r.args || []).join(" ")}  (exit ${r.code})\n\n` : `⚠️ ${r.error || `gagal (exit ${r.code})`}${r.errOut ? "\n" + r.errOut : ""}\n\n`) + (r.out || "");
+    outEl.scrollTop = 0;
+    if (r.state) paintSnapshot(r.state);
+  } catch (e) { outEl.textContent = "⚠️ Server agen tidak aktif — jalankan node server.cjs lalu buka dari http://127.0.0.1:7868/"; }
+}
+function initTutorbotCard() {
+  $id("tbCard").hidden = !agentOnline;
+  $id("tbCard").querySelectorAll(".tb-btn").forEach(btn => btn.addEventListener("click", () => {
+    const cmid = $id("tbCmid").value.trim();
+    if ((btn.dataset.cmd === "tugas" || btn.dataset.cmd === "forum") && !/^\d+$/.test(cmid)) { $id("tbOut").textContent = "Isi cmid dulu (angka), mis. 373840 (course AUDIT). Peta Course menampilkan daftar cmid."; return; }
+    runTutorbot(btn.dataset.cmd, btn.dataset.args || (cmid ? cmid : ""));
+  }));
+}
+async function initAgent() {
+  MATRIX_ORDER.forEach(bid => { DEMO.agents[bid] = { status: "idle", task: null, progress: 0 }; });
+  const sel = $id("chatRole");
+  const allOpt = document.createElement("option"); allOpt.value = "semua"; allOpt.textContent = "👥 Semua peran (riwayat gabungan)"; sel.appendChild(allOpt);
+  MATRIX_ORDER.forEach(bid => { const b = BLOCKS[bid]; const og = document.createElement("optgroup"); og.label = `${b.icon} ${b.name}`; b.roles.forEach(r => { const o = document.createElement("option"); o.value = `${bid}|${r.title}`; o.textContent = r.title; og.appendChild(o); }); sel.appendChild(og); });
+  sel.value = "semua";
+  try {
+    const s = await agentApi("/api/office");
+    agentOnline = true; agentEngine = s.engine;
+    $id("engineLabel").textContent = s.engine === "freebuff" ? "🧠 Otak: Freebuff" : s.engine === "llm" ? `⚡ LLM (${s.model || ""})` : "🧪 Simulasi lokal";
+    if (s.engine === "freebuff") { $id("autoWorkBtn").disabled = true; $id("autoWorkBtn").textContent = "⚙️ Diatur oleh otak Freebuff"; showAgentBanner("🧠 <b>Layar Pantau Freebuff:</b> server agen aktif — instruksi &amp; chat hanya dari thread Freebuff; halaman ini hanya menampilkan state kantor (<code>kantor/state.json</code>) secara live.", false); } else { showAgentBanner(`⚡ Mode <b>${esc(s.engine)}</b> — konsol perintah lokal bisa dipakai di bawah.`, false); }
+    applyInputMode();
+    drainId = 0; paintSnapshot(s.state);
+    pollTimer = setInterval(async () => { try { const s2 = await agentApi("/api/office"); paintSnapshot(s2.state); } catch (e) { /* diamkan */ } }, 2000);
+  } catch (e) {
+    agentOnline = false; agentEngine = "demo";
+    $id("engineLabel").textContent = "🧪 Simulasi lokal (browser)";
+    showAgentBanner("Server agen belum aktif — jalankan <code>node server.cjs</code> di folder proyek lalu muat ulang halaman dari <code>http://127.0.0.1:7868/</code>. Sementara bisa Mode Demo.", true);
+    paintSnapshot({ agents: DEMO.agents, log: DEMO.log, chats: [] });
+  }
+  applyInputMode();
+  initTutorbotCard();
+  $id("chatRole").addEventListener("change", () => { if (lastSnap) renderChats(lastSnap); });
+  $id("directiveBtn").addEventListener("click", sendDirective);
+  $id("chatBtn").addEventListener("click", sendChat);
+  $id("chatInput").addEventListener("keydown", (e) => { if (e.key === "Enter") sendChat(); });
+  $id("autoWorkBtn").addEventListener("click", () => { if (agentEngine === "freebuff") return; setAuto(!autoWork); });
+  $id("demoBtn").addEventListener("click", () => { agentOnline = false; agentEngine = "demo"; $id("agentBanner").hidden = true; $id("engineLabel").textContent = "🧪 Simulasi lokal (browser)"; applyInputMode(); if (!autoWork) setAuto(true); });
+  document.getElementById("drawerBody").addEventListener("click", (e) => {
+    const btn = e.target.closest(".chat-me");
+    if (!btn) return;
+    $id("chatRole").value = `${btn.dataset.bid}|${btn.dataset.role}`;
+    closeDrawer();
+    switchView("agent");
+    if (lastSnap) renderChats(lastSnap);
+    const cc = document.getElementById("chatCard");
+    if (cc) { cc.classList.remove("flash"); void cc.offsetWidth; cc.classList.add("flash"); cc.scrollIntoView({ behavior: "smooth", block: "center" }); }
+  });
+}
+
+/* ===== SUASANA KANTOR (live, fakta nyata) + FEED LOG ASLI ===== */
+function renderFeed(snap) {
+  const feed = $id("ambFeed"); if (!feed) return;
+  const logs = ((snap && snap.log) || []).slice(0, 4);
+  if (!logs.length) { feed.innerHTML = `<li><span>🕘 Belum ada aktivitas — kantor menunggu perintah Freebuff.</span></li>`; return; }
+  feed.innerHTML = logs.map(l => {
+    const b = BLOCKS[l.blockId];
+    return `<li><span class="t-time">${esc(l.time || "")}</span><span>${b ? b.icon : "🤖"} ${esc(String(l.text || "").slice(0, 88))}</span></li>`;
+  }).join("");
+}
+function initOfficeNow() {
+  const clk = $id("clk"), hari = $id("clkDate"), shift = $id("shiftLabel");
+  const occ = $id("occNow"), cond = $id("condNow");
+  function tick() {
+    const d = new Date(), h = d.getHours();
+    clk.textContent = d.toLocaleTimeString("id-ID", { hour12: false });
+    hari.textContent = d.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    const jamKerja = h >= 8 && h < 17;
+    const tod = (h >= 19 || h < 6) ? "malam" : (h < 11 ? "pagi" : "siang");
+    document.body.dataset.tod = tod;
+    shift.textContent = tod === "malam" ? "🌙 Malam — lembur seperlunya" : tod === "pagi" ? "🌅 Pagi — kantor baru dibuka" : (h < 15 ? "☀️ Siang — jam produktif" : "🌇 Sore — menuju jam pulang");
+    const working = MATRIX_ORDER.filter(bid => lastSnap && lastSnap.agents && lastSnap.agents[bid] && lastSnap.agents[bid].status === "working").length;
+    occ.innerHTML = `<b style="all:unset"></b>${working} blok bekerja · ${totalRoles()} profesional terdaftar`;
+    cond.textContent = h >= 8 && h < 18
+      ? "Lampu terang · AC aktif · pintu terbuka"
+      : (tod === "malam" ? "Lobi redup · lampu lantai lembur menyala" : "Buka &amp; tutup hari — persiapan/pembersihan");
+  }
+  tick(); setInterval(tick, 1000);
+}
+
+/* ===== INIT ===== */
+fetchFiles();
+renderStats();
+renderIso();
+wireIso();
+renderFloors();
+renderOrg();
+renderMatrix();
+renderFolder();
+requestAnimationFrame(loop);
+initAgent();
+initOfficeNow();
+</script>
+</body>
+</html>

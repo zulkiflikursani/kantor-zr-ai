@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" width="1080" height="1080" font-family="system-ui,Segoe UI,Roboto,sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0D7A6F"/>
+      <stop offset="1" stop-color="#063A44"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1080" height="1080" fill="url(#bg)"/>
+  <circle cx="960" cy="120" r="220" fill="#F5B301" opacity="0.14"/>
+  <circle cx="80" cy="980" r="180" fill="#FFF8EC" opacity="0.07"/>
+
+  <!-- badge serinya -->
+  <rect x="72" y="80" width="330" height="54" rx="27" fill="#0B5F57" stroke="#2DD4BF" stroke-width="2"/>
+  <text x="237" y="115" text-anchor="middle" fill="#EAFBF7" font-size="26" font-weight="700">SERI MASALAH POS · 1/3</text>
+
+  <!-- headline -->
+  <text x="72" y="300" fill="#FFF8EC" font-size="78" font-weight="800">Internet Mati?</text>
+  <text x="72" y="400" fill="#F5B301" font-size="78" font-weight="800">TETAP JUALAN.</text>
+
+  <text x="72" y="470" fill="#CDEDE7" font-size="32">Aplikasi kasir lain BERHENTI saat sinyal hilang.</text>
+  <text x="72" y="516" fill="#CDEDE7" font-size="32">POS Kolaka jalan offline, sinkron sendiri saat pulih.</text>
+
+  <!-- ilustrasi: vs card -->
+  <g font-size="30">
+    <rect x="72" y="580" width="450" height="300" rx="24" fill="#3A1410" stroke="#E4572E" stroke-width="3"/>
+    <text x="110" y="640" fill="#F5A48A" font-weight="800">❌ KASIR BIASA</text>
+    <text x="110" y="700" fill="#FFD9CE">Sinyal putus → transaksi</text>
+    <text x="110" y="744" fill="#FFD9CE">macet, antrian panjang,</text>
+    <text x="110" y="788" fill="#FFD9CE">pelanggan kabur.</text>
+    <text x="110" y="844" fill="#F5A48A" font-size="24">Kasus nyata: kafe kehilangan</text>
+
+    <rect x="558" y="580" width="450" height="300" rx="24" fill="#08312D" stroke="#34D399" stroke-width="3"/>
+    <text x="596" y="640" fill="#6EE7B7" font-weight="800">✅ POS KOLAKA</text>
+    <text x="596" y="700" fill="#D6FFF3">Offline-first → penjualan</text>
+    <text x="596" y="744" fill="#D6FFF3">tetap masuk, antre sinkron</text>
+    <text x="596" y="788" fill="#D6FFF3">otomatis saat sinyal kembali.</text>
+    <text x="596" y="844" fill="#6EE7B7" font-size="24">Laporan hari ini juga ikut rapi</text>
+  </g>
+
+  <!-- CTA + harga -->
+  <rect x="72" y="930" width="480" height="86" rx="43" fill="#F5B301"/>
+  <text x="312" y="985" text-anchor="middle" fill="#1E1B16" font-size="34" font-weight="800">Coba Gratis 14 Hari</text>
+  <text x="600" y="965" fill="#FFF8EC" font-size="26" font-weight="700">Mulai Rp175.000/bln</text>
+  <text x="600" y="1002" fill="#9FE7DC" font-size="22">Didampingi langsung · Kab. Kolaka</text>
+
+  <text x="1008" y="160" text-anchor="end" fill="#FFF8EC" font-size="34" font-weight="800" opacity="0.9">POS KOLAKA</text>
+</svg>

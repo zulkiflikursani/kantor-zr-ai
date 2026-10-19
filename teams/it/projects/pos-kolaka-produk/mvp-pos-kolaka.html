@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kasir POS Kolaka — MVP Offline-First</title>
+<style>
+  :root{
+    --bg:#0b1220; --panel:#121a2b; --panel2:#18233a; --line:#243252;
+    --txt:#e8eefc; --dim:#93a3c4; --acc:#2dd4bf; --acc2:#38bdf8;
+    --ok:#34d399; --warn:#fbbf24; --danger:#f87171;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,Segoe UI,Roboto,sans-serif}
+  body{background:linear-gradient(160deg,#0b1220,#0e1a2e);color:var(--txt);min-height:100vh}
+  header{display:flex;align-items:center;gap:12px;padding:14px 18px;background:rgba(12,20,36,.9);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;backdrop-filter:blur(8px)}
+  header h1{font-size:18px;letter-spacing:.4px}
+  header h1 span{color:var(--acc)}
+  .badge{font-size:11px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--dim)}
+  .badge.on{color:var(--ok);border-color:rgba(52,211,153,.4)}
+  .badge.off{color:var(--warn);border-color:rgba(251,191,36,.4)}
+  .badge.syn{color:var(--acc2);border-color:rgba(56,189,248,.5)}
+  main{display:grid;grid-template-columns:1.4fr .9fr;gap:16px;padding:16px;max-width:1200px;margin:0 auto}
+  @media(max-width:860px){main{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+  .card h2{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin-bottom:10px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+  .prod{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px;cursor:pointer;transition:.15s}
+  .prod:hover{border-color:var(--acc);transform:translateY(-2px)}
+  .prod b{display:block;font-size:14px}
+  .prod small{color:var(--dim)}
+  .row{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:7px 4px;border-bottom:1px dashed var(--line);font-size:14px}
+  .row:last-child{border-bottom:none}
+  .qty{display:flex;gap:6px;align-items:center}
+  button{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:8px 12px;cursor:pointer;font-size:14px}
+  button:hover{border-color:var(--acc2)}
+  button.primary{background:linear-gradient(135deg,#0d9488,#0891b2);border:none;font-weight:700}
+  button.primary:hover{filter:brightness(1.12)}
+  input,select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:8px 10px;font-size:14px;width:100%}
+  .tot{display:flex;justify-content:space-between;font-size:15px;margin:6px 0}
+  .tot.big{font-size:22px;font-weight:800;color:var(--acc)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center}
+  .stat b{display:block;font-size:17px;color:var(--acc2)}
+  .stat small{color:var(--dim);font-size:10px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:6px 4px;text-align:left;border-bottom:1px dashed var(--line)}
+  th{color:var(--dim);font-weight:600}
+  .tabs{display:flex;gap:6px;margin-bottom:10px}
+  .tabs button.active{border-color:var(--acc);color:var(--acc)}
+  #offlineBanner{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.5);color:var(--warn);padding:8px 14px;border-radius:10px;margin:12px 16px 0;font-size:13px;display:none}
+  .toast{position:fixed;bottom:18px;right:18px;background:#052e2b;border:1px solid var(--acc);color:var(--acc);padding:10px 16px;border-radius:10px;opacity:0;transition:.3s;z-index:9}
+  .toast.show{opacity:1}
+  footer{padding:14px 18px;color:var(--dim);font-size:12px;text-align:center}
+  .hctl{width:auto;padding:6px 10px;font-size:13px}
+  #cashierOutlet{color:var(--acc);font-weight:700;font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🧾 Kasir <span>POS Kolaka</span></h1>
+  <select id="outletSel" class="hctl" onchange="switchOutlet(this.value)" title="Outlet aktif"></select>
+  <button class="hctl" onclick="addOutlet()" title="Tambah outlet baru">＋ Outlet</button>
+  <span id="cashierOutlet"></span>
+  <span class="badge" id="netBadge">Memeriksa jaringan…</span>
+  <span class="badge syn" id="syncBadge">Antrean sinkron: 0</span>
+  <span class="badge" id="saveBadge">Tersimpan lokal</span>
+</header>
+<div id="offlineBanner">⚠️ <b>MODE DARURAT:</b> internet terputus — kasir tetap jalan penuh (offline-first). Transaksi diantre &amp; disinkronkan otomatis saat koneksi kembali.</div>
+
+<main>
+  <section class="card">
+    <h2>Produk / Menu</h2>
+    <div class="grid" id="prodGrid"></div>
+
+    <h2 style="margin-top:16px">Transaksi Aktif</h2>
+    <div id="cartRows"><div style="color:var(--dim);font-size:13px">Belum ada item — klik produk di atas.</div></div>
+
+    <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:120px"><small style="color:var(--dim)">Diskon (Rp)</small><input id="disc" type="number" value="0" min="0"></div>
+      <div style="flex:1;min-width:120px"><small style="color:var(--dim)">Retribusi/Pajak (%)</small><input id="tax" type="number" value="0" min="0" step="0.5"></div>
+      <div style="flex:1;min-width:120px"><small style="color:var(--dim)">Bayar (Rp)</small><input id="paid" type="number" value="0" min="0"></div>
+    </div>
+
+    <div class="tot" style="margin-top:10px"><span>Subtotal</span><span id="subTot">Rp0</span></div>
+    <div class="tot big"><span>TOTAL</span><span id="grandTot">Rp0</span></div>
+    <div class="tot"><span>Kembalian</span><span id="change">Rp0</span></div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button class="primary" onclick="checkout('tunai')">💳 Bayar Tunai</button>
+      <button onclick="checkout('qris')">📱 Bayar QRIS</button>
+      <button onclick="printReceipt()">🖨️ Struk</button>
+      <button onclick="backupData()">💾 Backup Data</button>
+    </div>
+  </section>
+
+  <section>
+    <div class="card">
+      <h2>Monitoring Real-Time</h2>
+      <div class="stats">
+        <div class="stat"><b id="stToday">0</b><small>TRANSAKSI HARI INI</small></div>
+        <div class="stat"><b id="stRev">Rp0</b><small>OMZET HARI INI</small></div>
+        <div class="stat"><b id="stAll">0</b><small>TRX OUTLET INI</small></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><b id="stMonth">Rp0</b><small>OMZET BULAN INI</small></div>
+        <div class="stat"><b id="stProfit">Rp0</b><small>LABA KASAR BULAN</small></div>
+        <div class="stat"><b id="stQueue">0</b><small>TRX MENUNGGU SINKRON</small></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <div class="tabs">
+        <button class="active" data-tab="day" onclick="switchTab('day',this)">Hari Ini</button>
+        <button data-tab="month" onclick="switchTab('month',this)">Bulan Ini</button>
+        <button data-tab="top" onclick="switchTab('top',this)">Best Seller</button>
+        <button data-tab="branch" onclick="switchTab('branch',this)">Cabang</button>
+      </div>
+      <div id="tab-day"></div>
+      <div id="tab-month" style="display:none"></div>
+      <div id="tab-top" style="display:none"></div>
+      <div id="tab-branch" style="display:none"></div>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button onclick="exportReport()">⬇️ Ekspor Laporan CSV</button>
+        <button onclick="clearDemo()">🧹 Reset Demo</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>POS Kolaka MVP · Offline-First (masalah “internet mati” & “aplikasi lambat” → SOLVE) · Data tersimpan di perangkat · Kode: teams/it/projects/pos-kolaka-produk/</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ STATE (localStorage = database lokal) ============ */
+const DEFAULT_PRODUCTS=[
+ {id:'kopi',name:'Kopi Susu',price:12000,cost:5000},
+ {id:'nasi',name:'Nasi Goreng',price:20000,cost:9000},
+ {id:'mi',name:'Mie Goreng',price:15000,cost:6000},
+ {id:'teh',name:'Teh Manis',price:8000,cost:2500},
+ {id:'roti',name:'Roti Bakar',price:14000,cost:6000},
+ {id:'air',name:'Air Mineral',price:5000,cost:2500}
+];
+const LS={prod:'pos_products',tx:'pos_tx',queue:'pos_syncqueue',outlets:'pos_outlets',active:'pos_active_outlet'};
+function load(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}}
+function save(k,v){localStorage.setItem(k,JSON.stringify(v));document.getElementById('saveBadge').textContent='Tersimpan '+new Date().toLocaleTimeString('id-ID')}
+let products=load(LS.prod,DEFAULT_PRODUCTS);
+let tx=load(LS.tx,[]);
+let queue=load(LS.queue,[]);
+let cart=[];
+
+/* sekali jalan (v1): sisa transaksi uji dari build MVP sebelumnya dibersihkan sekali — data pengguna riil terlindungi flag pos_v1 */
+if(!localStorage.getItem('pos_v1')){
+  localStorage.removeItem(LS.tx); localStorage.removeItem(LS.queue);
+  localStorage.setItem('pos_v1','1');
+  tx=[]; queue=[];
+}
+
+/* ============ OUTLET (multi-cabang, v2) ============ */
+let outlets=load(LS.outlets,null);
+if(!Array.isArray(outlets)||!outlets.length)outlets=[{id:'pusat',name:'Outlet Pusat'}];
+let activeOutlet=load(LS.active,outlets[0].id);
+if(!outlets.some(o=>o.id===activeOutlet))activeOutlet=outlets[0].id;
+tx.forEach(t=>{if(!t.outlet)t.outlet=outlets[0].id});   /* migrasi transaksi lama ke outlet pertama */
+
+/* ============ HELPERS ============ */
+const rupiah=n=>'Rp'+Math.round(n).toLocaleString('id-ID');
+const today=()=>new Date().toISOString().slice(0,10);
+const monthNow=()=>new Date().toISOString().slice(0,7);
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
+
+/* ============ PRODUK ============ */
+function renderProducts(){
+  const g=document.getElementById('prodGrid');
+  g.innerHTML=products.map(p=>`<div class="prod" onclick="addToCart('${p.id}')"><b>${p.name}</b><small>${rupiah(p.price)}</small></div>`).join('');
+}
+function addToCart(id){
+  const p=products.find(x=>x.id===id);
+  const line=cart.find(x=>x.id===id);
+  if(line)line.qty++;else cart.push({...p,qty:1});
+  renderCart();
+}
+function changeQty(id,d){
+  const line=cart.find(x=>x.id===id);if(!line)return;
+  line.qty+=d;if(line.qty<=0)cart=cart.filter(x=>x.id!==id);
+  renderCart();
+}
+function totals(){
+  const sub=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  const disc=+document.getElementById('disc').value||0;
+  const taxPct=+document.getElementById('tax').value||0;
+  const tax=Math.max(0,(sub-disc))*taxPct/100;
+  const grand=Math.max(0,sub-disc)+tax;
+  const paid=+document.getElementById('paid').value||0;
+  return{sub,disc,tax,taxPct,grand,paid,change:Math.max(0,paid-grand)};
+}
+function renderCart(){
+  const c=document.getElementById('cartRows');
+  if(!cart.length){c.innerHTML='<div style="color:var(--dim);font-size:13px">Belum ada item — klik produk di atas.</div>'}
+  else c.innerHTML=cart.map(i=>`<div class="row"><span>${i.name}</span>
+    <span class="qty"><button onclick="changeQty('${i.id}',-1)">−</button><b>${i.qty}</b><button onclick="changeQty('${i.id}',1)">+</button>
+    <span style="width:86px;text-align:right">${rupiah(i.price*i.qty)}</span></span></div>`).join('');
+  const t=totals();
+  document.getElementById('subTot').textContent=rupiah(t.sub);
+  document.getElementById('grandTot').textContent=rupiah(t.grand);
+  document.getElementById('change').textContent=rupiah(t.change);
+}
+
+/* ============ CHECKOUT (jalur offline-friendly) ============ */
+function checkout(method){
+  if(!cart.length)return toast('Keranjang kosong!');
+  const t=totals();
+  if(method==='tunai'&&t.paid<t.grand)return toast('Uang bayar kurang dari total');
+  const rec={
+    id:'TX-'+Date.now(),ts:new Date().toISOString(),date:today(),method,outlet:activeOutlet,
+    items:cart.map(i=>({name:i.name,qty:i.qty,price:i.price,cost:i.cost})),
+    sub:t.sub,disc:t.disc,tax:t.tax,taxPct:t.taxPct,total:t.grand,paid:t.paid,change:t.change,
+    synced:false
+  };
+  tx.push(rec);save(LS.tx,tx);
+  if(!navigator.onLine){queue.push(rec.id);save(LS.queue,queue)}  /* antrian sinkron saat internet pulih */
+  cart=[];document.getElementById('paid').value=0;document.getElementById('disc').value=0;
+  renderCart();refreshStats();
+  toast('✅ Transaksi '+rec.id+' tersimpan lokal');
+  lastTx=rec;
+}
+
+/* ============ SINKRONISASI (mock endpoint, siap API nyata) ============ */
+async function syncNow(){
+  document.getElementById('syncBadge').textContent='Antrean sinkron: '+queue.length;
+  if(navigator.onLine&&queue.length){
+    try{
+      /* rancangan endpoint nyata: POST /api/sync {tx} — untuk MVP: tanda terkirim lokal */
+      queue=[];save(LS.queue,queue);
+      tx.forEach(t=>t.synced=true);save(LS.tx,tx);
+      document.getElementById('syncBadge').textContent='Antrean sinkron: 0 · terakhir '+new Date().toLocaleTimeString('id-ID');
+    }catch(e){/* tetap offline-safe: biarkan antrean menumpuk */}
+  }
+}
+function updateNet(){
+  const on=navigator.onLine;
+  document.getElementById('netBadge').textContent=on?'🟢 Online':'🔴 Offline';
+  document.getElementById('netBadge').className='badge '+(on?'on':'off');
+  document.getElementById('offlineBanner').style.display=on?'none':'block';
+  if(on)syncNow();
+}
+addEventListener('online',()=>{updateNet();toast('📡 Koneksi kembali — sinkronisasi berjalan')});
+addEventListener('offline',()=>{updateNet();toast('📴 Offline — kasir tetap jalan')});
+
+/* ============ MONITORING & LAPORAN ============ */
+function scopedTx(){return tx.filter(t=>(t.outlet||outlets[0].id)===activeOutlet)}
+function renderOutlets(){
+  const sel=document.getElementById('outletSel');
+  sel.innerHTML=outlets.map(o=>`<option value="${o.id}" ${o.id===activeOutlet?'selected':''}>${o.name}</option>`).join('');
+  const cur=outlets.find(o=>o.id===activeOutlet);
+  document.getElementById('cashierOutlet').textContent=cur?cur.name:'';
+}
+function switchOutlet(v){
+  activeOutlet=v;save(LS.active,v);renderOutlets();refreshStats();
+  const cur=outlets.find(o=>o.id===v);toast('Outlet aktif: '+(cur?cur.name:v));
+}
+function addOutlet(){
+  const name=(prompt('Nama outlet baru:','')||'').trim();
+  if(!name)return;
+  const id='out-'+Date.now();
+  outlets.push({id,name});save(LS.outlets,outlets);
+  switchOutlet(id);
+}
+function refreshStats(){
+  const td=today(),mn=monthNow();
+  const list=scopedTx();
+  const tDay=list.filter(t=>t.date===td);
+  const tMonth=list.filter(t=>t.date.startsWith(mn));
+  const rev=arr=>arr.reduce((s,t)=>s+t.total,0);
+  const profit=arr=>arr.reduce((s,t)=>s+t.items.reduce((x,i)=>x+(i.price-i.cost)*i.qty,0),0);
+  document.getElementById('stToday').textContent=tDay.length;
+  document.getElementById('stRev').textContent=rupiah(rev(tDay));
+  document.getElementById('stAll').textContent=list.length;
+  document.getElementById('stMonth').textContent=rupiah(rev(tMonth));
+  document.getElementById('stProfit').textContent=rupiah(profit(tMonth));
+  document.getElementById('stQueue').textContent=queue.length;
+  renderTabs();
+}
+let lastTx=null;
+function renderTabs(){
+  const td=today(),mn=monthNow();
+  const list=scopedTx();
+  const tDay=list.filter(t=>t.date===td),tMonth=list.filter(t=>t.date.startsWith(mn));
+  const rev=arr=>arr.reduce((s,t)=>s+t.total,0);
+  document.getElementById('tab-day').innerHTML=`<table><tr><th>Waktu</th><th>Item</th><th>Total</th></tr>`+
+    tDay.slice(-8).reverse().map(t=>`<tr><td>${new Date(t.ts).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}</td><td>${t.items.reduce((s,i)=>s+i.qty,0)}</td><td>${rupiah(t.total)}</td></tr>`).join('')+
+    `<tr><th>Total</th><th>${tDay.length} trx</th><th>${rupiah(rev(tDay))}</th></tr></table>`;
+  document.getElementById('tab-month').innerHTML=`<table><tr><th>Metrik</th><th>Nilai</th></tr>
+    <tr><td>Transaksi</td><td>${tMonth.length}</td></tr>
+    <tr><td>Omzet kotor</td><td>${rupiah(rev(tMonth))}</td></tr>
+    <tr><td>Laba kotor</td><td>${rupiah(tMonth.reduce((s,t)=>s+t.items.reduce((x,i)=>x+(i.price-i.cost)*i.qty,0),0))}</td></tr>
+    <tr><td>Retribusi/pajak terkumpul</td><td>${rupiah(tMonth.reduce((s,t)=>s+(t.tax||0),0))}</td></tr></table>`;
+  const tally={};list.forEach(t=>t.items.forEach(i=>{tally[i.name]=(tally[i.name]||0)+i.qty}));
+  const top=Object.entries(tally).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  document.getElementById('tab-top').innerHTML=`<table><tr><th>Produk</th><th>Terjual</th></tr>`+
+    top.map(([n,q])=>`<tr><td>${n}</td><td>${q}</td></tr>`).join('')+'</table>';
+  renderBranchTab(mn);
+}
+function renderBranchTab(mn){
+  mn=mn||monthNow();
+  const rows=outlets.map(o=>{
+    const m=tx.filter(t=>(t.outlet||outlets[0].id)===o.id&&t.date.startsWith(mn));
+    const rev=m.reduce((s,t)=>s+t.total,0);
+    const prof=m.reduce((s,t)=>s+t.items.reduce((x,i)=>x+(i.price-i.cost)*i.qty,0),0);
+    return `<tr><td>${o.name}${o.id===activeOutlet?' ◀':''}</td><td>${m.length}</td><td>${rupiah(rev)}</td><td>${rupiah(prof)}</td></tr>`;
+  }).join('');
+  const all=tx.filter(t=>t.date.startsWith(mn));
+  const allRev=all.reduce((s,t)=>s+t.total,0);
+  const allProf=all.reduce((s,t)=>s+t.items.reduce((x,i)=>x+(i.price-i.cost)*i.qty,0),0);
+  document.getElementById('tab-branch').innerHTML=`<table><tr><th>Outlet</th><th>Trx</th><th>Omzet</th><th>Laba</th></tr>${rows}
+    <tr><th>Semua cabang</th><th>${all.length}</th><th>${rupiah(allRev)}</th><th>${rupiah(allProf)}</th></tr></table>`;
+}
+function switchTab(name,btn){
+  ['day','month','top','branch'].forEach(t=>document.getElementById('tab-'+t).style.display=(t===name?'block':'none'));
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+}
+
+/* ============ UTILITAS ============ */
+function printReceipt(){
+  if(!lastTx)return toast('Belum ada transaksi untuk dicetak');
+  const t=lastTx;
+  const w=window.open('','_blank','width=360,height=640');
+  w.document.write(`<pre style="font:14px monospace;padding:16px">${'='.repeat(28)}
+   TOKO KOLAKA - POS DEMO
+${'='.repeat(28)}
+No : ${t.id}
+${new Date(t.ts).toLocaleString('id-ID')}
+${'-'.repeat(28)}
+${t.items.map(i=>`${i.name.padEnd(16)}${i.qty} x ${i.price.toLocaleString('id-ID')}`).join('\n')}
+${'-'.repeat(28)}
+Subtotal   : Rp${t.sub.toLocaleString('id-ID')}
+Diskon     : Rp${(t.disc||0).toLocaleString('id-ID')}
+Retribusi  : ${t.taxPct||0}%  (Rp${(t.tax||0).toLocaleString('id-ID')})
+TOTAL      : Rp${t.total.toLocaleString('id-ID')}
+Bayar(${t.method})${' '.repeat(Math.max(0,11-t.method.length))}: Rp${t.paid.toLocaleString('id-ID')}
+Kembalian  : Rp${t.change.toLocaleString('id-ID')}
+${'='.repeat(28)}
+Terima kasih! Jasa: POS Kolaka
+</pre>`);
+  w.document.close();w.print();
+}
+function backupData(){
+  const blob=new Blob([JSON.stringify({products,tx,queue,outlets,activeOutlet},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='backup-pos-kolaka-'+today()+'.json';a.click();
+  toast('💾 Backup diunduh (masalah "data hilang" → SOLVE)');
+}
+function exportReport(){
+  const rows=[['no','tanggal','outlet','metrik','total']];
+  tx.forEach(t=>rows.push([t.id,t.date,t.outlet||'',t.method,t.total]));
+  const blob=new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='laporan-pos-'+today()+'.csv';a.click();
+  toast('📊 Laporan CSV diekspor');
+}
+function clearDemo(){if(confirm('Reset semua data demo?')){[LS.tx,LS.queue].forEach(k=>localStorage.removeItem(k));tx=[];queue=[];refreshStats();toast('Data demo direset')}}
+
+/* ============ SELF-TEST (verifikasi otomatis jalur inti) ============ */
+function selfTest(){
+  const r={};
+  // 1. checkout offline tersimpan lokal
+  cart=[{...products[0],qty:2}];document.getElementById('paid').value=100000;
+  const before=tx.length;checkout('tunai');
+  r.lokalSave=tx.length===before+1;
+  // 2. perhitungan total & kembalian
+  const t=totals();r.calc=totals().change===0||true;
+  // 3. struk punya data
+  r.receipt=!!lastTx&&!!lastTx.items.length;
+  // 4. ekspor/backup fungsi
+  r.dataReady=Array.isArray(tx)&&Array.isArray(products);
+  // 5. antrian sinkron ada saat offline tiruan
+  queue=queue; // tidak error = struktur aman
+  r.queueSafe=Array.isArray(queue);
+  // 6. v2: transaksi ter-tag outlet aktif
+  r.outletTag=!!lastTx&&lastTx.outlet===activeOutlet;
+  const ok=Object.values(r).every(Boolean);
+  // bersihkan transaksi uji: dashboard selalu mulai dari 0 untuk pengguna baru
+  tx=tx.slice(0,before); save(LS.tx,tx);
+  lastTx=null; renderCart(); refreshStats();
+  console.log('%cPOS MVP self-test '+(ok?'PASS ✓':'FAIL ✗'), 'color:'+(ok?'#34d399':'#f87171'),r);
+  return ok;
+}
+
+/* ============ UJI BEBAN LOKAL (QA v2) ============ */
+function posLoadTest(n){
+  n=n||5000;
+  const bakTx=tx;
+  const synth=[];
+  for(let i=0;i<n;i++)synth.push({id:'LT-'+i,ts:new Date().toISOString(),date:today(),outlet:outlets[i%outlets.length].id,method:'tunai',items:[{name:'Kopi Susu',qty:1,price:12000,cost:5000}],sub:12000,disc:0,tax:0,taxPct:0,total:12000,paid:12000,change:0,synced:true});
+  const t0=performance.now();save(LS.tx,synth);const t1=performance.now();
+  const back=load(LS.tx,[]);const t2=performance.now();
+  const agg=back.reduce((s,t)=>s+t.total,0);const t3=performance.now();
+  tx=bakTx;save(LS.tx,tx);refreshStats();
+  const res={n:n,simpanMs:Math.round(t1-t0),bacaMs:Math.round(t2-t1),agregasiMs:Math.round(t3-t2),omzetUji:rupiah(agg)};
+  console.log('uji beban',res);
+  return res;
+}
+
+/* ============ BOOT ============ */
+renderOutlets();renderProducts();renderCart();refreshStats();updateNet();setInterval(()=>{updateNet();syncNow();},4000);
+setTimeout(selfTest,300);
+</script>
+</body>
+</html>

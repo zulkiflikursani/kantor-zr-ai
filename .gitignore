@@ -1,0 +1,15 @@
+# kredensial & data lokal
+.env
+kantor/runs/
+.logs/
+
+# build & dependensi tampilan 3D
+kantor3d/node_modules/
+kantor3d/dist/
+
+# internal editor/agen
+.freebuff/
+.DS_Store
+
+# eksperimen deploy lokal (tidak dipakai repo ini)
+deploy-demo/
